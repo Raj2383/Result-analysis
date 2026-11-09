@@ -110,7 +110,7 @@ export const overviewRepository: OverviewRepoDeps = {
        FROM programmes p
        LEFT JOIN students st ON st.programme_code = p.code
        GROUP BY p.code, p.short_name, p.name, p.degree_level
-       HAVING COUNT(DISTINCT st.roll_no) > 0 OR p.code IN ('020', '044')
+       HAVING COUNT(DISTINCT st.roll_no) > 0
        ORDER BY student_count DESC, p.code ASC`
     );
     return rows;

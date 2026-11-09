@@ -87,6 +87,18 @@ export function createIngestionService(deps: IngestionServiceDeps = {}) {
       const paperRows = await catalog.upsertPapers(client, paperPool);
       const paperPkByKey = new Map(paperRows.map((p) => [`${p.scheme_id}||${p.paper_id}`, p.id]));
       const resultRows = await records.upsertStudentResults(client, parsed.results.map((r) => ({ exam_id: examKeyToId.get(r.exam_key), roll_no: r.roll_no, exam_type: r.exam_type, credits_secured: r.credits_secured ?? 0 })));
+      await client.query(`
+        UPDATE exams e
+        SET programme_code = sub.programme_code
+        FROM (
+          SELECT sr.exam_id, st.programme_code
+          FROM student_results sr
+          JOIN students st ON st.roll_no = sr.roll_no
+          WHERE st.programme_code IS NOT NULL
+          GROUP BY sr.exam_id, st.programme_code
+        ) sub
+        WHERE e.id = sub.exam_id AND e.programme_code IS NULL
+      `);
       const resultIdByKey = new Map(resultRows.map((x) => [`${x.exam_id}||${x.roll_no}`, x.id]));
       const markRows: Array<Record<string, unknown>> = [];
       for (const r of parsed.results) {

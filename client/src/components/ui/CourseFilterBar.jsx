@@ -36,7 +36,7 @@ export default function CourseFilterBar({
           >
             All Courses
           </button>
-          {courses.map((c) => {
+          {courses.filter((c) => Number(c.student_count) > 0).map((c) => {
             const isSelected = selectedCourse === c.code || selectedCourse === c.short_name;
             return (
               <button
