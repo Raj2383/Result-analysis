@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ResultLens – GGSIPU Result Analyzer</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f5f6fa;--card:#fff;--ink:#141a33;--mute:#6b7390;--line:#e3e6f0;--pri:#2b3a8c;--pri2:#4b5fd6;--acc:#f5a524;--ok:#1f9d6b;--bad:#d64545;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1224;--card:#171c36;--ink:#eef0fa;--mute:#98a0c4;--line:#2a3157;--pri:#7d8dff;--pri2:#5a6cf0}}
+:root[data-theme="dark"]{--bg:#0e1224;--card:#171c36;--ink:#eef0fa;--mute:#98a0c4;--line:#2a3157;--pri:#7d8dff;--pri2:#5a6cf0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Manrope,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;line-height:1.5}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:12px 20px;flex-wrap:wrap}
+.logo{font-weight:800;font-size:20px;color:var(--pri)}.logo span{color:var(--acc)}
+nav{display:flex;gap:4px;overflow-x:auto;flex:1}
+nav button{border:0;background:none;color:var(--mute);font:600 14px Manrope,system-ui,sans-serif;padding:8px 14px;border-radius:8px;cursor:pointer;white-space:nowrap}
+nav button.on{background:var(--pri);color:#fff}
+.auth{display:flex;align-items:center;gap:10px;margin-left:auto}
+.auth .who{font-size:13px;font-weight:600;text-align:right;line-height:1.25}
+.auth .who small{display:block;color:var(--mute);font-weight:400}
+.btn-pri{border:0;background:var(--pri);color:#fff;font:700 14px Manrope,system-ui,sans-serif;padding:9px 18px;border-radius:10px;cursor:pointer;white-space:nowrap}
+.btn-ghost{border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 13px Manrope,system-ui,sans-serif;padding:8px 14px;border-radius:10px;cursor:pointer}
+main{max-width:1050px;margin:0 auto;padding:24px 16px 48px}
+.screen{display:none}.screen.on{display:block}
+h1{font-size:30px;margin:0 0 6px;font-weight:800}h2{font-size:18px;margin:0 0 12px}
+p.sub{color:var(--mute);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+.grid{display:grid;gap:16px}.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}.g4{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.hero{background:linear-gradient(135deg,var(--pri),var(--pri2));color:#fff;border:0;padding:32px}
+.hero p{opacity:.85;max-width:520px}
+.drop{border:2px dashed var(--pri2);border-radius:14px;padding:40px 24px;text-align:center;background:var(--card);margin-top:20px}
+.drop h2{margin-bottom:4px}
+.btn{display:inline-block;border:0;background:var(--acc);color:#141a33;font:800 14px Manrope,system-ui,sans-serif;padding:11px 20px;border-radius:10px;cursor:pointer}
+.steps{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;font-size:13px;color:var(--mute)}
+.steps b{background:var(--pri);color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;margin-right:6px}
+.stat{font-size:28px;font-weight:800}.lbl{color:var(--mute);font-size:13px}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;color:var(--mute);font-weight:600;padding:8px;border-bottom:1px solid var(--line)}
+.tbl td{padding:9px 8px;border-bottom:1px solid var(--line)}
+.wrap{overflow-x:auto}
+.pill{padding:2px 10px;border-radius:99px;font-size:12px;font-weight:700}
+.p-ok{background:#1f9d6b22;color:var(--ok)}.p-bad{background:#d6454522;color:var(--bad)}
+.bar{height:10px;background:var(--line);border-radius:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--pri2);border-radius:6px}
+.search{display:flex;gap:8px;margin:16px 0;flex-wrap:wrap}
+input,select{padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:14px Manrope,system-ui,sans-serif;flex:1;min-width:140px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.tabs button{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:7px 14px;border-radius:99px;cursor:pointer;font:600 13px Manrope,system-ui,sans-serif}
+.tabs button.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:12px;margin:8px 0 20px}
+.pod{text-align:center;width:120px}.pod div{border-radius:10px 10px 0 0;color:#fff;font-weight:800;display:flex;align-items:flex-start;justify-content:center;padding-top:8px;font-size:22px}
+.pod small{display:block;color:var(--mute)}
+.note{font-size:12px;color:var(--mute);margin-top:24px;text-align:center}
+.formula{font-family:ui-monospace,Menlo,monospace;background:var(--bg);padding:10px 12px;border-radius:8px;font-size:13px;margin-top:10px}
+
+/* Auth modal */
+.overlay{position:fixed;inset:0;background:rgba(10,14,34,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+.overlay.on{display:flex}
+.modal{background:var(--card);border:1px solid var(--line);border-radius:16px;width:100%;max-width:400px;padding:24px;position:relative;max-height:calc(100vh - 32px);overflow-y:auto}
+.modal h2{font-size:22px;margin:0 0 4px;font-weight:800}
+.modal .x{position:absolute;top:12px;right:14px;border:0;background:none;color:var(--mute);font-size:26px;line-height:1;cursor:pointer}
+.seg{display:flex;background:var(--bg);border-radius:10px;padding:4px;gap:4px;margin:16px 0 18px}
+.seg button{flex:1;border:0;background:none;color:var(--mute);font:700 13px Manrope,system-ui,sans-serif;padding:8px 6px;border-radius:8px;cursor:pointer}
+.seg button.on{background:var(--card);color:var(--pri);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.field input{width:100%;flex:none}
+.field input:focus{outline:2px solid var(--pri2);outline-offset:1px}
+.err{color:var(--bad);font-size:13px;min-height:18px;margin:-4px 0 8px}
+.submit{width:100%;border:0;background:var(--pri);color:#fff;font:800 15px Manrope,system-ui,sans-serif;padding:12px;border-radius:10px;cursor:pointer}
+.switch{text-align:center;font-size:13px;color:var(--mute);margin:14px 0 0}
+.switch a{color:var(--pri);font-weight:700;cursor:pointer}
+@media (max-width:640px){header{padding:10px 14px;gap:10px}nav{order:3;flex-basis:100%}.auth .who{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Result<span>Lens</span></div>
+  <nav id="nav">
+    <button class="on" data-s="home">1 · Home / Upload</button>
+    <button data-s="student">2 · Student Result</button>
+    <button data-s="toppers">3 · Toppers</button>
+    <button data-s="analytics">4 · Analytics</button>
+  </nav>
+  <div class="auth" id="auth">
+    <button class="btn-pri" id="openAuth">Sign in / Login</button>
+  </div>
+</header>
+
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="mtitle">
+  <div class="modal">
+    <button class="x" id="closeAuth" aria-label="Close">&times;</button>
+    <h2 id="mtitle">Welcome back</h2>
+    <p class="lbl" id="msub" style="margin:0">Log in to view your results.</p>
+    <div class="seg" id="seg">
+      <button class="on" data-m="slogin">Student Login</button>
+      <button data-m="flogin">Faculty Login</button>
+      <button data-m="ssignup">Student Sign up</button>
+    </div>
+
+    <form id="form" novalidate>
+      <div class="field" id="f-name" style="display:none"><label for="name">Full name</label><input id="name" autocomplete="name" placeholder="e.g. Aarav Sharma"></div>
+      <div class="field" id="f-id"><label for="uid" id="uidLbl">Roll number</label><input id="uid" autocomplete="username" placeholder="e.g. 01011502024"></div>
+      <div class="field"><label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" placeholder="Enter password"></div>
+      <div class="err" id="err" role="alert"></div>
+      <button class="submit" id="submitBtn" type="submit">Log in</button>
+    </form>
+    <p class="switch" id="switch"></p>
+    <p class="lbl" style="margin:14px 0 0;text-align:center">Design mockup · no real accounts are created</p>
+  </div>
+</div>
+
+<main>
+
+<section class="screen on" id="home">
+  <div class="card hero">
+    <h1>Analyze GGSIPU results in seconds</h1>
+    <p>Upload the university result PDF. We extract every subject's marks, compute SGPA and CGPA, and rank toppers.</p>
+  </div>
+  <div class="drop">
+    <h2>Result PDF</h2>
+    <p class="lbl">Drag &amp; drop your single result PDF here, or browse</p>
+    <button class="btn">Choose file</button>
+    <p class="lbl" style="margin:12px 0 0">One PDF · up to 50 MB</p>
+  </div>
+  <div class="steps"><span><b>1</b>Upload PDF</span><span><b>2</b>Extract marks</span><span><b>3</b>Calculate SGPA &amp; CGPA</span><span><b>4</b>View rankings</span></div>
+  <div class="grid g4" style="margin-top:20px">
+    <div class="card"><div class="stat">1,248</div><div class="lbl">Students parsed</div></div>
+    <div class="card"><div class="stat">42</div><div class="lbl">Colleges</div></div>
+    <div class="card"><div class="stat">18</div><div class="lbl">Subjects</div></div>
+    <div class="card"><div class="stat">2</div><div class="lbl">Semesters</div></div>
+  </div>
+</section>
+
+<section class="screen" id="student">
+  <h1>Student Result</h1><p class="sub">Search by enrollment number to see subject-wise marks, SGPA and CGPA.</p>
+  <div class="search"><input placeholder="Enrollment no. e.g. 01011502024"><select><option>All semesters</option><option>Sem I</option><option>Sem II</option></select><button class="btn">Search</button></div>
+  <div class="grid g2">
+    <div class="card"><h2>Aarav Sharma</h2><div class="lbl">Enrollment 01011502024 · Sample College of Engineering</div>
+      <div class="grid" style="grid-template-columns:1fr 1fr 1fr;margin-top:16px">
+        <div><div class="stat">8.62</div><div class="lbl">SGPA Sem I</div></div>
+        <div><div class="stat">9.05</div><div class="lbl">SGPA Sem II</div></div>
+        <div><div class="stat" style="color:var(--acc)">8.84</div><div class="lbl">CGPA</div></div>
+      </div>
+      <div class="formula">SGPA = Σ(credit × grade point) ÷ Σ credits<br>CGPA = Σ(SGPA × sem credits) ÷ Σ credits</div>
+      <p class="lbl" style="margin-top:12px">Overall rank · College #3 · University #41</p>
+    </div>
+    <div class="card"><h2>Sem II marks</h2><div class="wrap"><table class="tbl">
+      <tr><th>Subject</th><th>Int.</th><th>Ext.</th><th>Total</th><th>Grade</th></tr>
+      <tr><td>Applied Maths II</td><td>38</td><td>52</td><td>90</td><td><span class="pill p-ok">O</span></td></tr>
+      <tr><td>Applied Physics II</td><td>35</td><td>48</td><td>83</td><td><span class="pill p-ok">A+</span></td></tr>
+      <tr><td>Programming in C</td><td>39</td><td>55</td><td>94</td><td><span class="pill p-ok">O</span></td></tr>
+      <tr><td>Environmental Studies</td><td>30</td><td>41</td><td>71</td><td><span class="pill p-ok">A</span></td></tr>
+      <tr><td>Communication Skills</td><td>28</td><td>30</td><td>58</td><td><span class="pill p-ok">B+</span></td></tr>
+    </table></div></div>
+  </div>
+</section>
+
+<section class="screen" id="toppers">
+  <h1>Toppers</h1><p class="sub">Leaderboards by subject, college, semester and university.</p>
+  <div class="tabs" id="ttabs">
+    <button class="on" data-t="Overall">Overall (University)</button><button data-t="Semester">Semester-wise</button><button data-t="College">College-wise</button><button data-t="Subject">Subject-wise</button>
+  </div>
+  <div class="card">
+    <div class="podium">
+      <div class="pod"><small>Riya Verma</small><div style="background:#9aa3c0;height:70px">2</div></div>
+      <div class="pod"><small>Kabir Singh</small><div style="background:var(--acc);height:100px;color:#141a33">1</div></div>
+      <div class="pod"><small>Ananya Gupta</small><div style="background:#b87a4b;height:52px">3</div></div>
+    </div>
+    <div class="wrap"><table class="tbl" id="ttable"></table></div>
+  </div>
+</section>
+
+<section class="screen" id="analytics">
+  <h1>Analytics</h1><p class="sub">Pass rate and average SGPA across colleges and subjects.</p>
+  <div class="grid g2">
+    <div class="card"><h2>Average SGPA by college</h2><div id="bars1"></div></div>
+    <div class="card"><h2>Pass % by subject</h2><div id="bars2"></div></div>
+  </div>
+  <div class="grid g4" style="margin-top:16px">
+    <div class="card"><div class="stat" style="color:var(--ok)">91.4%</div><div class="lbl">Overall pass rate</div></div>
+    <div class="card"><div class="stat">7.93</div><div class="lbl">Average CGPA</div></div>
+    <div class="card"><div class="stat">9.71</div><div class="lbl">Highest CGPA</div></div>
+    <div class="card"><div class="stat" style="color:var(--bad)">107</div><div class="lbl">Students with backlog</div></div>
+  </div>
+</section>
+
+<p class="note">Design mockup · all names and numbers are sample data</p>
+</main>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+$$('#nav button').forEach(b=>b.onclick=()=>{$$('#nav button').forEach(x=>x.classList.remove('on'));b.classList.add('on');$$('.screen').forEach(s=>s.classList.remove('on'));$('#'+b.dataset.s).classList.add('on');scrollTo(0,0)});
+const data={
+Overall:[['Kabir Singh','Sample Institute of Tech','9.71'],['Riya Verma','Sample College of Engg.','9.64'],['Ananya Gupta','Sample Institute of Tech','9.58'],['Rohan Mehta','Sample School of IT','9.49'],['Sneha Iyer','Sample College of Engg.','9.45']],
+Semester:[['Sem I · Riya Verma','Sample College of Engg.','9.80'],['Sem II · Kabir Singh','Sample Institute of Tech','9.75'],['Sem I · Kabir Singh','Sample Institute of Tech','9.68'],['Sem II · Ananya Gupta','Sample Institute of Tech','9.62'],['Sem II · Riya Verma','Sample College of Engg.','9.60']],
+College:[['Sample Institute of Tech · Kabir Singh','Rank 1','9.71'],['Sample College of Engg. · Riya Verma','Rank 1','9.64'],['Sample School of IT · Rohan Mehta','Rank 1','9.49'],['Sample Polytechnic · Isha Nair','Rank 1','9.32'],['Sample Univ. Dept · Dev Malhotra','Rank 1','9.28']],
+Subject:[['Applied Maths II · Kabir Singh','100 / 100','100'],['Programming in C · Riya Verma','98 / 100','98'],['Applied Physics II · Ananya Gupta','97 / 100','97'],['Env. Studies · Rohan Mehta','95 / 100','95'],['Comm. Skills · Sneha Iyer','92 / 100','92']]};
+function draw(k){$('#ttable').innerHTML='<tr><th>#</th><th>'+(k=='Subject'?'Subject · Topper':'Name')+'</th><th>'+(k=='College'?'Rank':'College / Marks')+'</th><th>'+(k=='Subject'?'Marks':'CGPA/SGPA')+'</th></tr>'+data[k].map((r,i)=>'<tr><td>'+(i+1)+'</td><td>'+r[0]+'</td><td>'+r[1]+'</td><td><b>'+r[2]+'</b></td></tr>').join('')}
+$$('#ttabs button').forEach(b=>b.onclick=()=>{$$('#ttabs button').forEach(x=>x.classList.remove('on'));b.classList.add('on');draw(b.dataset.t)});draw('Overall');
+function bars(id,arr,max){$(id).innerHTML=arr.map(a=>'<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:13px"><span>'+a[0]+'</span><b>'+a[1]+'</b></div><div class="bar"><i style="width:'+(a[1]/max*100)+'%"></i></div></div>').join('')}
+bars('#bars1',[['Sample Institute of Tech',8.72],['Sample College of Engg.',8.41],['Sample School of IT',8.10],['Sample Polytechnic',7.68],['Sample Univ. Dept',7.35]],10);
+bars('#bars2',[['Programming in C',96],['Applied Maths II',88],['Applied Physics II',85],['Env. Studies',94],['Comm. Skills',97]],100);
+
+/* ---------- Auth (mockup only: nothing is stored or sent) ---------- */
+const modes={
+ slogin:{title:'Welcome back',sub:'Student login with your roll number.',idLbl:'Roll number',idPh:'e.g. 01011502024',btn:'Log in',name:false,
+   sw:'New student? <a data-go="ssignup">Create an account</a>'},
+ flogin:{title:'Faculty login',sub:'Sign in with your faculty username.',idLbl:'Username',idPh:'Enter username',btn:'Log in',name:false,
+   sw:'Are you a student? <a data-go="slogin">Student login</a>'},
+ ssignup:{title:'Create student account',sub:'Sign up with your roll number to view your results.',idLbl:'Roll number',idPh:'e.g. 01011502024',btn:'Sign up',name:true,
+   sw:'Already registered? <a data-go="slogin">Log in</a>'}
+};
+let mode='slogin',user=null;
+function setMode(m){
+  mode=m;const c=modes[m];
+  $('#mtitle').textContent=c.title;$('#msub').textContent=c.sub;
+  $('#uidLbl').textContent=c.idLbl;$('#uid').placeholder=c.idPh;
+  $('#submitBtn').textContent=c.btn;
+  $('#f-name').style.display=c.name?'block':'none';
+  $('#pw').autocomplete=m==='ssignup'?'new-password':'current-password';
+  $('#switch').innerHTML=c.sw;
+  $$('#seg button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
+  $('#err').textContent='';
+  $$('#switch a').forEach(a=>a.onclick=()=>setMode(a.dataset.go));
+}
+function openAuth(m){setMode(m||'slogin');$('#overlay').classList.add('on');setTimeout(()=>($('#f-name').style.display==='block'?$('#name'):$('#uid')).focus(),30)}
+function closeAuth(){$('#overlay').classList.remove('on');$('#form').reset();$('#err').textContent=''}
+function renderAuth(){
+  $('#auth').innerHTML=user
+   ?'<div class="who">'+user.name+'<small>'+user.role+'</small></div><button class="btn-ghost" id="logout">Log out</button>'
+   :'<button class="btn-pri" id="openAuth">Sign in / Login</button>';
+  if(user)$('#logout').onclick=()=>{user=null;renderAuth()};
+  else $('#openAuth').onclick=()=>openAuth('slogin');
+}
+$('#closeAuth').onclick=closeAuth;
+$('#overlay').addEventListener('mousedown',e=>{if(e.target.id==='overlay')closeAuth()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAuth()});
+$$('#seg button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+$('#form').onsubmit=e=>{
+  e.preventDefault();
+  const id=$('#uid').value.trim(),pw=$('#pw').value,name=$('#name').value.trim();
+  if(mode==='ssignup'&&!name)return $('#err').textContent='Please enter your full name.';
+  if(!id)return $('#err').textContent=(mode==='flogin'?'Please enter your username.':'Please enter your roll number.');
+  if(mode!=='flogin'&&!/^\d{6,12}$/.test(id))return $('#err').textContent='Roll number should be 6–12 digits.';
+  if(pw.length<6)return $('#err').textContent='Password must be at least 6 characters.';
+  user=mode==='flogin'?{name:id,role:'Faculty'}:{name:mode==='ssignup'?name:'Roll '+id,role:'Student · '+id};
+  closeAuth();renderAuth();
+};
+renderAuth();
+</script>
+</body>
+</html>

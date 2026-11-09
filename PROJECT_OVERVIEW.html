@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ResultLens – Project Overview</title>
+<style>
+  :root { --brand: #2b3a8c; --brand-light: #4b5fd6; --accent: #f5a524; --ink: #0f172a; --muted: #475569; --line: #e2e8f0; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", system-ui, -apple-system, sans-serif; color: var(--ink); margin: 0; line-height: 1.55; }
+  .cover { background: linear-gradient(135deg, var(--brand), var(--brand-light)); color: #fff; padding: 56px 48px; }
+  .cover h1 { margin: 0 0 8px; font-size: 40px; }
+  .cover h1 span { color: var(--accent); }
+  .cover p { margin: 4px 0; opacity: .92; }
+  main { max-width: 960px; margin: 0 auto; padding: 24px 32px 64px; }
+  section { margin: 32px 0; }
+  h2 { color: var(--brand); border-bottom: 3px solid var(--accent); padding-bottom: 6px; font-size: 24px; }
+  h3 { color: var(--brand); margin-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #eef1fd; }
+  pre { background: #0f172a; color: #e2e8f0; padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; }
+  code { background: #eef1fd; padding: 1px 6px; border-radius: 4px; font-size: 13px; }
+  pre code { background: none; padding: 0; }
+  ul { padding-left: 22px; }
+  li { margin: 4px 0; }
+  .flow { font-size: 13px; }
+  .note { background: #fffbeb; border-left: 4px solid var(--accent); padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 24px; border-top: 1px solid var(--line); }
+  @media print {
+    .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    section { page-break-inside: avoid; }
+    h2 { page-break-after: avoid; }
+    main { padding: 0 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="cover">
+  <h1>Result<span>Lens</span></h1>
+  <p><strong>GGSIPU Result Analyzer &amp; CGPA Calculator — Project Overview</strong></p>
+  <p>Faculty uploads one result PDF · Students look up by enrollment number + semester (no student login) · Toppers &amp; analytics included</p>
+</div>
+<main>
+
+<section>
+<h2>1. Architecture</h2>
+<p>Monorepo, three layers. All traffic flows through a versioned REST API; the client never touches the database.</p>
+<pre class="flow">client/ (Vite React) ── Axios + httpOnly cookie ──▶ server/ (Express, /api/v1) ── pg Pool ──▶ PostgreSQL
+                                                            │
+                                                  pdfjs-dist │ transactional ingest
+                                                            ▼
+                                              parsers → services → repositories → tables</pre>
+<h3>Backend layering (strict)</h3>
+<table>
+<tr><th>Layer</th><th>Folder</th><th>Rule</th></tr>
+<tr><td>Routes</td><td><code>src/routes/</code></td><td>URL + middleware chain (<code>auth</code>, <code>requireRole</code>, <code>validate</code>, <code>upload</code>) only</td></tr>
+<tr><td>Controllers</td><td><code>src/controllers/</code></td><td>Thin: request → service → <code>apiResponse</code>. No SQL, no business rules</td></tr>
+<tr><td>Services</td><td><code>src/services/</code></td><td>Business logic + transactions (auth, ingestion, results, toppers, analytics)</td></tr>
+<tr><td>Repositories</td><td><code>src/repositories/</code></td><td>ALL SQL lives here, parameterized only, one file per domain</td></tr>
+<tr><td>Parsers</td><td><code>src/parsers/</code></td><td>Pure text → structured data. No I/O</td></tr>
+<tr><td>Utils</td><td><code>src/utils/</code></td><td>Shared helpers (<code>ApiError</code>, <code>apiResponse</code>, <code>calculations</code>, <code>rollNumber</code>, <code>hash</code>, <code>pagination</code>, <code>rankingSql</code>)</td></tr>
+</table>
+<p>Consistent response shape: <code>{ success, data, message }</code>. All errors thrown as <code>ApiError</code>, formatted by one central handler.</p>
+<h3>Frontend (feature-based)</h3>
+<p><code>app/</code> (router, providers) → <code>pages/</code> → <code>features/{auth, upload, student, toppers, analytics}</code> (each with <code>api/</code>, <code>hooks/</code>, <code>components/</code>) → shared <code>components/ui/</code> primitives (one <code>Table</code> shared by marks + toppers). Data fetching only via TanStack Query inside feature hooks.</p>
+</section>
+
+<section>
+<h2>2. Tech stack — what and why</h2>
+<table>
+<tr><th>Choice</th><th>Why</th></tr>
+<tr><td>React (Vite) + React Router</td><td>Component UI + routing; fast dev/build</td></tr>
+<tr><td>Axios + TanStack Query</td><td>Axios carries the session cookie; Query gives caching + loading/error states per feature hook</td></tr>
+<tr><td>react-icons, Tailwind, Manrope</td><td>Single icon set; utility styling with brand tokens; light/dark via CSS vars</td></tr>
+<tr><td>react-hook-form + zod</td><td>Client validation mirroring backend schemas</td></tr>
+<tr><td>Node.js + Express</td><td>Same language both ends; explicit middleware chain</td></tr>
+<tr><td>PostgreSQL + <code>pg</code> thin layer (no ORM)</td><td>Relational result data fits SQL; window functions (<code>RANK()</code>, <code>ROW_NUMBER()</code>) do rankings/latest-attempt in-DB; SQL stays visible</td></tr>
+<tr><td>JWT in httpOnly cookie + bcrypt</td><td>XSS-safe session; role in payload for <code>requireRole('faculty'|'admin')</code> gates</td></tr>
+<tr><td><code>pdfjs-dist</code></td><td>Page-by-page text with x/y positions (needed to rebuild lines); lazy-imported</td></tr>
+<tr><td>Zod / multer / Vitest</td><td>Every request validated; memory-only PDF upload (10&nbsp;MB cap); fast unit tests with injected fakes (no live DB)</td></tr>
+</table>
+</section>
+
+<section>
+<h2>3. PDF extraction approach</h2>
+<p>GGSIPU PDFs alternate <strong>Scheme pages</strong> (institution + paper table) and <strong>Result pages</strong> (exam header + student blocks).</p>
+<pre class="flow">PDF bytes → extractText (pdfjs, per-page lines) → parseResultText (state machine)
+→ ingestPdf (SHA-256 dedupe → one transaction of batched upserts → recompute summaries)</pre>
+<ul>
+<li><strong>Line reconstruction:</strong> pdfjs returns positioned fragments; cluster by y (±2 units), sort top-down / left-to-right.</li>
+<li><strong>Line matchers:</strong> one regex per type — institution, <code>SchemeID</code>, <code>Sem./Year</code>, exam header (<code>REGULAR|REAPPEAR</code>), student header (11-digit roll, name until <code>SID:</code>), paper entry <code>020301(4)</code>, scores (internal <code>-</code>, external <code>A</code> = absent), totals (<code>84(A+)</code>, grace <code>40(P)*</code>, <code>A(F)</code>), scheme paper rows (minor <code>--</code> → null).</li>
+<li><strong>State machine:</strong> walks lines with carried institution/scheme/exam context. Never crashes on bad lines (warns, max 50, returned with the upload). Credits-secured (incl. <code>0</code>) distinguished from page footers by forward-scan + credit-sum range, first-wins.</li>
+<li><strong>Ingestion:</strong> SHA-256 → 409 on re-upload; one transaction of batched <code>INSERT … ON CONFLICT DO UPDATE</code> upserts (incl. <code>UNLISTED</code> stubs for result-only papers); SGPA/CGPA/ranks recomputed pre-COMMIT.</li>
+</ul>
+</section>
+
+<section>
+<h2>4. Database tables (PostgreSQL, 12 tables)</h2>
+<table>
+<tr><th>Table</th><th>Key design point</th></tr>
+<tr><td><code>programmes</code></td><td><code>code</code> PK (code doubles as name — names unknown from PDF)</td></tr>
+<tr><td><code>institutions</code></td><td><code>code</code> PK — keyed by code so renames update the row</td></tr>
+<tr><td><code>schemes</code></td><td><code>scheme_id</code> PK + institution/programme FKs + semester</td></tr>
+<tr><td><code>papers</code></td><td><code>UNIQUE(scheme_id, paper_id)</code> — names/credits differ per scheme</td></tr>
+<tr><td><code>grade_scale</code></td><td>Seeded O…F bands; logic reads this table, never hard-codes</td></tr>
+<tr><td><code>students</code></td><td>11-digit <code>roll_no</code> PK + name, SID, institution/programme/batch/scheme</td></tr>
+<tr><td><code>uploads</code></td><td><code>file_hash</code> UNIQUE (SHA-256 dedupe)</td></tr>
+<tr><td><code>exams</code></td><td><code>UNIQUE(batch, session, exam_type, semester)</code></td></tr>
+<tr><td><code>student_results</code></td><td><code>UNIQUE(exam_id, roll_no)</code> + <code>credits_secured</code></td></tr>
+<tr><td><code>marks</code></td><td><code>UNIQUE(result_id, paper_pk)</code>; nullable internal/external/total; <code>is_absent</code>, <code>is_grace</code></td></tr>
+<tr><td><code>semester_summary</code></td><td><code>PK(roll_no, semester)</code>: sgpa, cgpa, total_credits, has_backlog, college_rank, university_rank</td></tr>
+<tr><td><code>users</code></td><td>Roles <code>faculty|admin</code> only; username UNIQUE; password_hash</td></tr>
+</table>
+<p>Indexes: <code>marks(paper_pk, total DESC)</code>, <code>students(institution_code)</code>, <code>student_results(exam_id)</code>.</p>
+<h3>ER diagram</h3>
+<pre>programmes ──1:N── schemes ──1:N── papers ──1:N── marks
+institutions ──1:N── schemes                    ▲
+institutions ──1:N── students ──1:N── student_results ──1:N──┘
+                                    ▲                marks ▲
+uploads ──1:N── exams ──1:N──────────┘
+users ──1:N── uploads (uploaded_by)     students ──1:N── semester_summary</pre>
+</section>
+
+<section>
+<h2>5. Important modules</h2>
+<table>
+<tr><th>Module</th><th>Location</th><th>Responsibility</th></tr>
+<tr><td>Result parser</td><td><code>server/src/parsers/</code></td><td>pdfjs → page lines; regex per line type; state machine → structured object. Pure, fixture-tested</td></tr>
+<tr><td>Ingestion</td><td><code>services/ingestion.service.js</code> + <code>repositories/{catalog,records,uploads}.repo.js</code></td><td>Hash dedupe → transactional batched upserts → summary recompute + history</td></tr>
+<tr><td>Auth</td><td><code>services/auth.service.js</code>, <code>routes/auth|admin.routes.js</code></td><td>Faculty/admin login (JWT cookie), me/logout, admin-creates-professor</td></tr>
+<tr><td>Results &amp; summaries</td><td><code>services/results.service.js</code> + <code>summary.repo.js</code> + <code>utils/calculations.js</code></td><td>Latest-attempt marks → pure SGPA/CGPA/backlog → <code>semester_summary</code> + global <code>RANK()</code> refresh</td></tr>
+<tr><td>Toppers</td><td><code>repositories/toppers.repo.js</code></td><td>Overall (max CGPA), semester (SGPA), college (CGPA in institution), subject (top total + all ties)</td></tr>
+<tr><td>Upload UI</td><td><code>client/src/features/upload/</code> + <code>pages/UploadPage.jsx</code></td><td>Drag-drop dropzone + progress + history; <code>/upload</code> behind faculty/admin guard</td></tr>
+<tr><td>Result lookup UI</td><td><code>features/student/</code> + <code>StudentResultPage.jsx</code></td><td>Public enrollment + semester form → marks table, SGPA/CGPA + rank cards</td></tr>
+</table>
+<div class="note"><strong>Calculation rules</strong> (single source: <code>utils/calculations.js</code>): SGPA = Σ(credits×gp)/Σ(credits), fails/absent = 0, 2-decimal rounding; reappear = latest attempt per paper; CGPA = Σ(SGPA×credits)/Σ(credits); backlog = any F/absent in latest attempts.</div>
+</section>
+
+<section>
+<h2>6. Homepage layout</h2>
+<p>Public landing: hero + result lookup front and center; faculty sees Upload after sign-in.</p>
+<pre>┌────────────────────────────────────────────────────────────┐
+│ ResultLens      Toppers   Analytics   Upload*   [Sign in]  │  ← sticky header
+├────────────────────────────────────────────────────────────┤
+│  HERO                                                      │
+│  GGSIPU Result Analyzer &amp; CGPA Calculator                  │
+│  Upload once. Look up any enrollment number.                │
+│                                                            │
+│  ┌───────────────────┐  ┌───────────────────────┐           │
+│  │ Enrollment number │  │ Semester [3 ▾]  [Go]  │           │  ← public lookup
+│  └───────────────────┘  └───────────────────────┘           │
+├────────────────────────────────────────────────────────────┤
+│  How it works: 1 Upload PDF → 2 Extract marks →             │
+│                3 Calculate SGPA &amp; CGPA → 4 View rankings   │
+├────────────────────────────────────────────────────────────┤
+│  [Students] [Colleges] [Avg CGPA] [Pass rate]  (stat cards) │
+├────────────────────────────────────────────────────────────┤
+│  Faculty? Sign in to upload the result PDF.                │
+└────────────────────────────────────────────────────────────┘
+* Upload nav item + dropzone render only for faculty/admin sessions.</pre>
+<p><strong>Result page:</strong> summary card (SGPA per semester + CGPA + college/university rank) over a subject-wise marks table (Int. | Ext. | Total | Grade pill). <strong>Toppers:</strong> tabs Overall / Semester / College / Subject → podium top-3 + full ranked table with filters. <strong>Analytics:</strong> avg SGPA by college, pass % by subject, pass rate, avg/highest CGPA, backlog count.</p>
+</section>
+
+</main>
+<footer>ResultLens · GGSIPU Result Analyzer &amp; CGPA Calculator · generated from PROJECT_OVERVIEW.md</footer>
+</body>
+</html>
