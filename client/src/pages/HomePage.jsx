@@ -90,7 +90,23 @@ export default function HomePage() {
             <FiSearch aria-hidden /> Search
           </Button>
         </form>
-        <p className="mt-4 text-[13px] text-white/80">Public lookup by enrollment number + semester · no sign-in required</p>
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-[13px] text-white/90">
+          <span className="font-medium text-white/80">Available Courses:</span>
+          {(overview?.programmes || [
+            { code: '020', short_name: 'BCA', student_count: 2634 },
+            { code: '044', short_name: 'MCA', student_count: 0 },
+          ]).map((p) => (
+            <span
+              key={p.code}
+              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 text-white font-semibold text-xs backdrop-blur-sm"
+              title={p.name || p.short_name}
+            >
+              <span>{p.short_name || p.code}</span>
+              {p.student_count > 0 && <span className="text-[10px] text-white/80">({p.student_count.toLocaleString()})</span>}
+            </span>
+          ))}
+          <span className="text-white/70 ml-1">· Public enrollment lookup</span>
+        </div>
       </section>
 
       <section className="mt-8 sm:mt-10">

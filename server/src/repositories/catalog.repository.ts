@@ -35,16 +35,48 @@ async function batchUpsert(runner: Runner, opts: {
   return out;
 }
 
+export const KNOWN_PROGRAMMES: Record<string, { name: string; short_name: string; degree_level: string }> = {
+  '020': { name: 'Bachelor of Computer Applications', short_name: 'BCA', degree_level: 'UG' },
+  '044': { name: 'Master of Computer Applications', short_name: 'MCA', degree_level: 'PG' },
+  '027': { name: 'B.Tech (Computer Science & Engineering)', short_name: 'B.Tech CSE', degree_level: 'UG' },
+  '028': { name: 'B.Tech (Electronics & Communication Engineering)', short_name: 'B.Tech ECE', degree_level: 'UG' },
+  '017': { name: 'Bachelor of Business Administration', short_name: 'BBA', degree_level: 'UG' },
+  '031': { name: 'Bachelor of Commerce (Honours)', short_name: 'B.Com (Hons)', degree_level: 'UG' },
+  '040': { name: 'B.A. LL.B. (Honours)', short_name: 'BA LLB', degree_level: 'UG' },
+  '088': { name: 'B.Tech (Artificial Intelligence & Data Science)', short_name: 'B.Tech AI-DS', degree_level: 'UG' },
+};
+
 async function upsertProgrammes(runner: Runner, codes: string[]) {
   const uniq = [...new Set((codes || []).filter(Boolean))];
   if (!uniq.length) return [];
+  const rows = uniq.map((c) => {
+    const meta = KNOWN_PROGRAMMES[c];
+    return [c, meta?.name || `Programme ${c}`, meta?.short_name || c, meta?.degree_level || 'UG'];
+  });
   return batchUpsert(runner, {
     table: 'programmes',
-    columns: ['code', 'name'],
-    rows: uniq.map((c) => [c, c]),
+    columns: ['code', 'name', 'short_name', 'degree_level'],
+    rows,
     conflict: '(code)',
-    update: 'name = programmes.name',
+    update: 'name = EXCLUDED.name, short_name = EXCLUDED.short_name, degree_level = EXCLUDED.degree_level',
   });
+}
+
+async function getProgrammes(runner: Runner) {
+  const { rows } = await runner.query(
+    `SELECT
+       p.code,
+       COALESCE(p.short_name, p.code) AS short_name,
+       COALESCE(p.name, p.code) AS name,
+       p.degree_level,
+       COUNT(DISTINCT st.roll_no)::int AS student_count
+     FROM programmes p
+     LEFT JOIN students st ON st.programme_code = p.code
+     GROUP BY p.code, p.short_name, p.name, p.degree_level
+     HAVING COUNT(DISTINCT st.roll_no) > 0 OR p.code IN ('020', '044')
+     ORDER BY student_count DESC, p.code ASC`
+  );
+  return rows;
 }
 
 async function upsertInstitutions(runner: Runner, institutions: Array<{ code: string; name: string }>) {
@@ -111,7 +143,7 @@ async function upsertPapers(
   });
 }
 
-const catalogRepository = { batchUpsert, upsertProgrammes, upsertInstitutions, upsertSchemes, upsertPapers };
+const catalogRepository = { batchUpsert, upsertProgrammes, getProgrammes, upsertInstitutions, upsertSchemes, upsertPapers };
 
-export { catalogRepository, batchUpsert };
+export { catalogRepository, batchUpsert, upsertProgrammes, getProgrammes, upsertInstitutions, upsertSchemes, upsertPapers };
 export default catalogRepository;

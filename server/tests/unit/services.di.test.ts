@@ -24,7 +24,7 @@ describe('service DI – factories accept injected repo/parser interfaces', () =
       hasher: { sha256: vi.fn() },
       db: { query: vi.fn(), getClient: vi.fn() },
       uploads: { findByHash: vi.fn(), createUpload: vi.fn(), listUploads: vi.fn(), deleteUpload: vi.fn() },
-      catalog: { upsertInstitutions: vi.fn(), upsertProgrammes: vi.fn(), upsertSchemes: vi.fn(), upsertPapers: vi.fn(), batchUpsert: vi.fn() },
+      catalog: { upsertInstitutions: vi.fn(), upsertProgrammes: vi.fn(), getProgrammes: vi.fn(), upsertSchemes: vi.fn(), upsertPapers: vi.fn(), batchUpsert: vi.fn() },
       records: { upsertStudents: vi.fn(), upsertExams: vi.fn(), upsertStudentResults: vi.fn(), upsertMarks: vi.fn() },
       summary: { recomputeSummaries: vi.fn(), getStudentResult: vi.fn(), searchStudents: vi.fn() },
     });

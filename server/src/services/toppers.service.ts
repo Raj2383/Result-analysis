@@ -11,33 +11,33 @@ export function createToppersService(deps: ToppersServiceDeps = {}) {
   const repo = deps.repo ?? toppersRepository;
   const runner = deps.runner ?? (db as unknown as Runner);
 
-  async function getOverallToppers(opts: { limit?: number; offset?: number } = {}) {
+  async function getOverallToppers(opts: { programmeCode?: string; batch?: number; limit?: number; offset?: number } = {}) {
     const limit = Math.min(Number(opts.limit) || 50, 500);
     const offset = Math.max(Number(opts.offset) || 0, 0);
-    const rows = await repo.overallToppers(runner, { limit, offset });
+    const rows = await repo.overallToppers(runner, { programmeCode: opts.programmeCode, batch: opts.batch, limit, offset });
     return { items: rows, count: rows.length };
   }
 
-  async function getSemesterToppers(opts: { semester: number; limit?: number; offset?: number }) {
+  async function getSemesterToppers(opts: { semester: number; programmeCode?: string; batch?: number; limit?: number; offset?: number }) {
     const semester = Number(opts.semester);
     const limit = Math.min(Number(opts.limit) || 50, 500);
     const offset = Math.max(Number(opts.offset) || 0, 0);
-    const rows = await repo.semesterToppers(runner, { semester, limit, offset });
+    const rows = await repo.semesterToppers(runner, { semester, programmeCode: opts.programmeCode, batch: opts.batch, limit, offset });
     return { items: rows, count: rows.length, semester };
   }
 
-  async function getCollegeToppers(opts: { institutionCode: string; limit?: number; offset?: number }) {
+  async function getCollegeToppers(opts: { institutionCode: string; programmeCode?: string; batch?: number; limit?: number; offset?: number }) {
     const institutionCode = String(opts.institutionCode);
     const limit = Math.min(Number(opts.limit) || 50, 500);
     const offset = Math.max(Number(opts.offset) || 0, 0);
-    const rows = await repo.collegeToppers(runner, { institutionCode, limit, offset });
+    const rows = await repo.collegeToppers(runner, { institutionCode, programmeCode: opts.programmeCode, batch: opts.batch, limit, offset });
     return { items: rows, count: rows.length, institutionCode };
   }
 
-  async function getSubjectToppers(opts: { paperId: string; schemeId?: string; limit?: number }) {
+  async function getSubjectToppers(opts: { paperId: string; schemeId?: string; programmeCode?: string; batch?: number; limit?: number }) {
     const paperId = String(opts.paperId);
     const limit = Math.min(Number(opts.limit) || 10, 100);
-    const rows = await repo.subjectToppers(runner, { paperId, schemeId: opts.schemeId, limit });
+    const rows = await repo.subjectToppers(runner, { paperId, schemeId: opts.schemeId, programmeCode: opts.programmeCode, batch: opts.batch, limit });
     return { items: rows, count: rows.length, paperId };
   }
 

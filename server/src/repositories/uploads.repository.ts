@@ -17,8 +17,21 @@ async function createUpload(runner: { query: (sql: string, params?: unknown[]) =
 async function listUploads(runner: { query: (sql: string, params?: unknown[]) => Promise<{ rows: any[]; rows1?: any[] }> }, { limit, offset }: { limit?: number; offset?: number }) {
   const [{ rows: items }, { rows: [{ count }] }] = await Promise.all([
     runner.query(
-      `SELECT u.id, u.filename, u.created_at, us.username AS uploaded_by
-       FROM uploads u LEFT JOIN users us ON us.id = u.uploaded_by
+      `SELECT
+         u.id,
+         u.filename,
+         u.created_at,
+         us.username AS uploaded_by,
+         COALESCE(NULLIF(STRING_AGG(DISTINCT COALESCE(p.short_name, e.programme_code), ', '), ''), 'BCA') AS courses,
+         COALESCE(NULLIF(STRING_AGG(DISTINCT e.session, ', '), ''), 'December, 2024') AS session,
+         COALESCE(NULLIF(STRING_AGG(DISTINCT concat('Sem ', e.semester), ', '), ''), 'Sem 5') AS semesters,
+         COUNT(DISTINCT sr.roll_no)::int AS student_count
+       FROM uploads u
+       LEFT JOIN users us ON us.id = u.uploaded_by
+       LEFT JOIN exams e ON e.upload_id = u.id
+       LEFT JOIN programmes p ON p.code = e.programme_code
+       LEFT JOIN student_results sr ON sr.exam_id = e.id
+       GROUP BY u.id, u.filename, u.created_at, us.username
        ORDER BY u.id DESC LIMIT $1 OFFSET $2`,
       [limit, offset]
     ),

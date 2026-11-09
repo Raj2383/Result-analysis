@@ -10,13 +10,25 @@ export interface AnalyticsRepoDeps {
 function buildSummaryWhere(filters: Record<string, unknown>) {
   const clauses: string[] = [];
   const values: unknown[] = [];
-  if (filters.semester != null) {
+  if (filters.semester != null && String(filters.semester).trim() !== '' && String(filters.semester) !== 'all') {
     values.push(Number(filters.semester));
     clauses.push(`ss.semester = $${values.length}`);
   }
-  if (filters.instCode) {
+  if (filters.instCode && String(filters.instCode).trim() !== '' && String(filters.instCode) !== 'all') {
     values.push(String(filters.instCode));
     clauses.push(`st.institution_code = $${values.length}`);
+  }
+  const prog = String(filters.programmeCode || filters.course || '').trim();
+  if (prog && prog !== 'all') {
+    values.push(prog);
+    clauses.push(`(st.programme_code = $${values.length} OR pr.short_name ILIKE $${values.length})`);
+  }
+  const rawBatch = Number(filters.batch || filters.year);
+  if (!isNaN(rawBatch) && rawBatch > 0) {
+    const shortBatch = rawBatch >= 2000 ? rawBatch % 100 : rawBatch;
+    const fullBatch = rawBatch >= 2000 ? rawBatch : 2000 + rawBatch;
+    values.push(shortBatch, fullBatch);
+    clauses.push(`(st.batch = $${values.length - 1} OR st.batch = $${values.length})`);
   }
   const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
   return { where, values };
@@ -33,11 +45,12 @@ export const analyticsRepository: AnalyticsRepoDeps = {
         0 AS avg_percentage,
         SUM(CASE WHEN ss.has_backlog = FALSE THEN 1 ELSE 0 END)::int AS passed,
         SUM(CASE WHEN ss.has_backlog = TRUE  THEN 1 ELSE 0 END)::int AS failed,
-        0 AS backlog_total,
+        SUM(CASE WHEN ss.has_backlog = TRUE THEN 1 ELSE 0 END)::int AS backlog_total,
         0 AS grace_papers,
         0 AS grace_marks
        FROM semester_summary ss
        JOIN students st ON st.roll_no = ss.roll_no
+       LEFT JOIN programmes pr ON pr.code = st.programme_code
        ${where}`,
       values,
     );
@@ -52,7 +65,7 @@ export const analyticsRepository: AnalyticsRepoDeps = {
       pass_rate: evaluated > 0 ? Number(((passed / evaluated) * 100).toFixed(2)) : 0,
       avg_cgpa: Number(row.avg_cgpa ?? 0),
       avg_percentage: 0,
-      backlog_total: 0,
+      backlog_total: Number(row.backlog_total ?? 0),
       grace_papers: 0,
       grace_marks: 0,
     };
@@ -70,6 +83,7 @@ export const analyticsRepository: AnalyticsRepoDeps = {
         ROUND((SUM(CASE WHEN ss.has_backlog = FALSE THEN 1 ELSE 0 END)::numeric / NULLIF(COUNT(*), 0)) * 100, 2) AS pass_rate
        FROM semester_summary ss
        JOIN students st ON st.roll_no = ss.roll_no
+       LEFT JOIN programmes pr ON pr.code = st.programme_code
        LEFT JOIN institutions i ON i.code = st.institution_code
        ${where}
        GROUP BY st.institution_code, i.name
@@ -83,13 +97,25 @@ export const analyticsRepository: AnalyticsRepoDeps = {
   getSubjectStats: async (filters = {}) => {
     const clauses: string[] = [];
     const values: unknown[] = [];
-    if (filters.semester != null) {
+    if (filters.semester != null && String(filters.semester).trim() !== '' && String(filters.semester) !== 'all') {
       values.push(Number(filters.semester));
       clauses.push(`e.semester = $${values.length}`);
     }
-    if (filters.instCode) {
+    if (filters.instCode && String(filters.instCode).trim() !== '' && String(filters.instCode) !== 'all') {
       values.push(String(filters.instCode));
       clauses.push(`st.institution_code = $${values.length}`);
+    }
+    const prog = String(filters.programmeCode || filters.course || '').trim();
+    if (prog && prog !== 'all') {
+      values.push(prog);
+      clauses.push(`(st.programme_code = $${values.length} OR pr.short_name ILIKE $${values.length})`);
+    }
+    const rawBatch = Number(filters.batch || filters.year);
+    if (!isNaN(rawBatch) && rawBatch > 0) {
+      const shortBatch = rawBatch >= 2000 ? rawBatch % 100 : rawBatch;
+      const fullBatch = rawBatch >= 2000 ? rawBatch : 2000 + rawBatch;
+      values.push(shortBatch, fullBatch);
+      clauses.push(`(st.batch = $${values.length - 1} OR st.batch = $${values.length})`);
     }
     const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
     const { rows } = await pool.query(
@@ -103,6 +129,7 @@ export const analyticsRepository: AnalyticsRepoDeps = {
        FROM marks m
        JOIN student_results sr ON sr.id = m.result_id
        JOIN students st ON st.roll_no = sr.roll_no
+       LEFT JOIN programmes pr ON pr.code = st.programme_code
        JOIN exams e ON e.id = sr.exam_id
        JOIN papers p ON p.id = m.paper_pk
        ${where}

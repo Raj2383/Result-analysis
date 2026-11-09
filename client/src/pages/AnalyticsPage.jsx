@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Shell from './_Shell.jsx';
 import Table from '../components/ui/Table.jsx';
 import BarList from '../components/ui/BarList.jsx';
+import CourseFilterBar from '../components/ui/CourseFilterBar.jsx';
 import { getAnalyticsApi } from '../features/analytics/api/analyticsApi.js';
 import { getToppersOverallApi } from '../features/toppers/api/toppersApi.js';
 import { getOverviewApi } from '../features/overview/api/overviewApi.js';
@@ -16,9 +18,28 @@ function pickBreakdown(source, candidates) {
 }
 
 export default function AnalyticsPage() {
-  const { data, isLoading, isError, error } = useQuery({ queryKey: ['analytics'], queryFn: getAnalyticsApi });
-  const { data: overview } = useQuery({ queryKey: ['overview'], queryFn: getOverviewApi });
-  const top10Query = useQuery({ queryKey: ['toppers', 'overall', 10], queryFn: () => getToppersOverallApi(10) });
+  const [course, setCourse] = useState('');
+  const [batch, setBatch] = useState('');
+  const [semester, setSemester] = useState('');
+
+  const filterParams = {
+    programmeCode: course || undefined,
+    batch: batch ? Number(batch) : undefined,
+    semester: semester ? Number(semester) : undefined,
+  };
+
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['analytics', filterParams],
+    queryFn: () => getAnalyticsApi(filterParams),
+  });
+  const { data: overview } = useQuery({
+    queryKey: ['overview', filterParams],
+    queryFn: () => getOverviewApi(filterParams),
+  });
+  const top10Query = useQuery({
+    queryKey: ['toppers', 'overall', 10, filterParams],
+    queryFn: () => getToppersOverallApi(10, filterParams),
+  });
 
   const summary = data || {};
   const toppers = top10Query.data?.items ?? [];
@@ -52,7 +73,18 @@ export default function AnalyticsPage() {
   ];
 
   return (
-    <Shell title="Analytics" subtitle="Pass rate and average performance across colleges and subjects.">
+    <Shell title="Analytics" subtitle="Performance across courses, batches, colleges and subjects.">
+      <CourseFilterBar
+        courses={overview?.programmes || []}
+        batches={overview?.batches || []}
+        selectedCourse={course}
+        onCourseChange={setCourse}
+        selectedBatch={batch}
+        onBatchChange={setBatch}
+        selectedSemester={semester}
+        onSemesterChange={setSemester}
+        showSemester={true}
+      />
       {isLoading && <p className="py-4 text-sm text-ink-soft">Loading analytics…</p>}
       {isError && (
         <p role="alert" className="py-4 text-sm text-bad">

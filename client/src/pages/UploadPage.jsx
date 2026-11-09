@@ -30,6 +30,23 @@ function UploadInner() {
   const columns = [
     { key: 'id', label: 'ID' },
     { key: 'filename', label: 'File' },
+    {
+      key: 'courses',
+      label: 'Course',
+      render: (val) => (
+        <span className="inline-block px-2 py-0.5 text-[11px] font-bold rounded-md bg-brand/10 text-brand">
+          {val || 'BCA'}
+        </span>
+      ),
+    },
+    { key: 'session', label: 'Exam Session' },
+    { key: 'semesters', label: 'Semester' },
+    {
+      key: 'student_count',
+      label: 'Students',
+      numeric: true,
+      render: (val) => (val != null ? Number(val).toLocaleString() : '—'),
+    },
     { key: 'uploaded_by', label: 'Uploaded by' },
     {
       key: 'created_at',

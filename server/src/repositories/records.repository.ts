@@ -24,11 +24,27 @@ async function upsertExams(runner: Runner, exams: Array<Record<string, unknown>>
   if (!exams || !exams.length) return [];
   return batchUpsert(runner, {
     table: 'exams',
-    columns: ['batch', 'session', 'exam_type', 'semester', 'upload_id'],
-    rows: exams.map((e) => [e.batch, e.session || '', e.exam_type, e.semester, e.upload_id]),
+    columns: ['batch', 'session', 'exam_type', 'semester', 'upload_id', 'exam_year', 'academic_year', 'programme_code'],
+    rows: exams.map((e) => {
+      const sess = String(e.session || '');
+      const yearMatch = sess.match(/\b(20\d{2})\b/);
+      const batchNum = Number(e.batch);
+      const examYear = e.exam_year ?? (yearMatch ? Number(yearMatch[1]) : (batchNum >= 2000 ? batchNum : 2000 + batchNum));
+      const academicYear = e.academic_year ?? (examYear ? `${examYear}-${Number(examYear) + 1}` : null);
+      return [
+        e.batch,
+        sess,
+        e.exam_type,
+        e.semester,
+        e.upload_id,
+        examYear,
+        academicYear,
+        e.programme_code || null,
+      ];
+    }),
     conflict: '(batch, session, exam_type, semester)',
-    update: 'upload_id = EXCLUDED.upload_id',
-    returning: 'id, batch, session, exam_type, semester',
+    update: 'upload_id = EXCLUDED.upload_id, exam_year = COALESCE(EXCLUDED.exam_year, exams.exam_year), academic_year = COALESCE(EXCLUDED.academic_year, exams.academic_year), programme_code = COALESCE(EXCLUDED.programme_code, exams.programme_code)',
+    returning: 'id, batch, session, exam_type, semester, exam_year, academic_year, programme_code',
   });
 }
 

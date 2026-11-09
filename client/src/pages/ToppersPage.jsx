@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import Shell from './_Shell.jsx';
 import TabBar from '../components/ui/TabBar.jsx';
 import Table from '../components/ui/Table.jsx';
+import CourseFilterBar from '../components/ui/CourseFilterBar.jsx';
 import Podium from '../features/toppers/components/Podium.jsx';
 import { getToppersOverallApi, getToppersSemesterApi, getToppersCollegeApi, getToppersSubjectApi } from '../features/toppers/api/toppersApi.js';
 import { getOverviewApi } from '../features/overview/api/overviewApi.js';
@@ -16,6 +17,8 @@ const TABS = [
 
 export default function ToppersPage() {
   const [tab, setTab] = useState('overall');
+  const [course, setCourse] = useState('');
+  const [batch, setBatch] = useState('');
   const [semester, setSemester] = useState('5');
   const [collegeCode, setCollegeCode] = useState('');
   const [paperId, setPaperId] = useState('');
@@ -27,20 +30,28 @@ export default function ToppersPage() {
   const institutions = overview?.institutions || [];
   const subjects = overview?.subject_stats || overview?.by_subject || [];
 
-  const overallQuery = useQuery({ queryKey: ['toppers', 'overall', 50], queryFn: () => getToppersOverallApi(50) });
+  const filterParams = {
+    programmeCode: course || undefined,
+    batch: batch ? Number(batch) : undefined,
+  };
+
+  const overallQuery = useQuery({
+    queryKey: ['toppers', 'overall', 50, filterParams],
+    queryFn: () => getToppersOverallApi(50, filterParams),
+  });
   const semesterQuery = useQuery({
-    queryKey: ['toppers', 'semester', semester],
-    queryFn: () => getToppersSemesterApi(Number(semester), 50),
+    queryKey: ['toppers', 'semester', semester, filterParams],
+    queryFn: () => getToppersSemesterApi(Number(semester), 50, filterParams),
     enabled: tab === 'semester',
   });
   const collegeQuery = useQuery({
-    queryKey: ['toppers', 'college', collegeCode],
-    queryFn: () => getToppersCollegeApi(collegeCode, 50),
+    queryKey: ['toppers', 'college', collegeCode, filterParams],
+    queryFn: () => getToppersCollegeApi(collegeCode, 50, filterParams),
     enabled: tab === 'college' && !!collegeCode,
   });
   const subjectQuery = useQuery({
-    queryKey: ['toppers', 'subject', paperId],
-    queryFn: () => getToppersSubjectApi(paperId, 10),
+    queryKey: ['toppers', 'subject', paperId, filterParams],
+    queryFn: () => getToppersSubjectApi(paperId, 10, filterParams),
     enabled: tab === 'subject' && !!paperId,
   });
 
@@ -53,10 +64,22 @@ export default function ToppersPage() {
   const scoreKey = tab === 'semester' ? 'sgpa' : tab === 'subject' ? 'total' : 'cgpa';
 
   return (
-    <Shell title="Toppers" subtitle="Leaderboards by subject, college, semester and university.">
-      <div className="mb-7 sm:mb-8">
+    <Shell title="Toppers" subtitle="Leaderboards by course, date/year, subject, college, semester and university.">
+      <div className="mb-6">
         <TabBar tabs={TABS} value={tab} onChange={setTab} label="Topper list" />
       </div>
+
+      <CourseFilterBar
+        courses={overview?.programmes || []}
+        batches={overview?.batches || []}
+        selectedCourse={course}
+        onCourseChange={setCourse}
+        selectedBatch={batch}
+        onBatchChange={setBatch}
+        selectedSemester={semester}
+        onSemesterChange={setSemester}
+        showSemester={tab === 'semester'}
+      />
 
       <div className="card p-6 sm:p-8">
         {tab === 'semester' && (
@@ -145,10 +168,19 @@ export default function ToppersPage() {
                 columns={[
                   { key: 'rank', label: '#', numeric: true },
                   { key: 'name', label: 'Name' },
+                  { key: 'programme', label: 'Course' },
+                  { key: 'batch_year', label: 'Batch', numeric: true },
                   { key: 'institution_code', label: 'College' },
                   { key: 'cgpa', label: 'CGPA', numeric: true },
                 ]}
-                rows={overallItems.map((t, i) => ({ rank: i + 1, name: t.name, institution_code: t.institution_code, cgpa: t.cgpa }))}
+                rows={overallItems.map((t, i) => ({
+                  rank: i + 1,
+                  name: t.name,
+                  programme: t.programme || 'BCA',
+                  batch_year: t.batch_year || '2022',
+                  institution_code: t.institution_code,
+                  cgpa: t.cgpa,
+                }))}
               />
             )}
             {tab === 'semester' && (
@@ -156,6 +188,8 @@ export default function ToppersPage() {
                 columns={[
                   { key: 'rank', label: '#', numeric: true },
                   { key: 'name', label: 'Name' },
+                  { key: 'programme', label: 'Course' },
+                  { key: 'batch_year', label: 'Batch', numeric: true },
                   { key: 'institution_code', label: 'College' },
                   { key: 'university_rank', label: 'Univ. Rank', numeric: true },
                   { key: 'sgpa', label: 'SGPA', numeric: true },
@@ -163,6 +197,8 @@ export default function ToppersPage() {
                 rows={semesterItems.map((t, i) => ({
                   rank: t.college_rank ?? i + 1,
                   name: t.name,
+                  programme: t.programme || 'BCA',
+                  batch_year: t.batch_year || '2022',
                   institution_code: t.institution_code,
                   university_rank: t.university_rank ?? '—',
                   sgpa: t.sgpa,
@@ -174,10 +210,17 @@ export default function ToppersPage() {
                 columns={[
                   { key: 'rank', label: '#', numeric: true },
                   { key: 'name', label: 'Name' },
+                  { key: 'programme', label: 'Course' },
                   { key: 'roll_no', label: 'Enrollment', numeric: true },
                   { key: 'cgpa', label: 'CGPA', numeric: true },
                 ]}
-                rows={collegeItems.map((t, i) => ({ rank: i + 1, name: t.name, roll_no: t.roll_no, cgpa: t.cgpa }))}
+                rows={collegeItems.map((t, i) => ({
+                  rank: i + 1,
+                  name: t.name,
+                  programme: t.programme || 'BCA',
+                  roll_no: t.roll_no,
+                  cgpa: t.cgpa,
+                }))}
               />
             )}
             {tab === 'subject' && paperId && (
@@ -185,6 +228,7 @@ export default function ToppersPage() {
                 columns={[
                   { key: 'rank', label: '#', numeric: true },
                   { key: 'name', label: 'Name' },
+                  { key: 'programme', label: 'Course' },
                   { key: 'institution_code', label: 'College' },
                   { key: 'total', label: 'Total', numeric: true },
                   { key: 'grade', label: 'Grade' },
@@ -192,6 +236,7 @@ export default function ToppersPage() {
                 rows={subjectItems.map((t, i) => ({
                   rank: t.rnk ?? i + 1,
                   name: t.name,
+                  programme: t.programme || 'BCA',
                   institution_code: t.institution_code,
                   total: t.total,
                   grade: t.grade,
