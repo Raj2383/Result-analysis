@@ -20,6 +20,8 @@
     --shadow-sm: 0 1px 2px rgba(20, 26, 51, 0.04);
     --shadow-md: 0 10px 30px rgba(20, 26, 51, 0.06);
     --ring: 0 0 0 3px rgba(75, 95, 214, 0.22);
+    /* Motion tokens – ease-out curves that feel responsive */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   }
 
   [data-theme='dark'] {
@@ -43,6 +45,7 @@
 
   html {
     scroll-behavior: smooth;
+    scrollbar-gutter: stable;
   }
 
   body {
@@ -53,35 +56,84 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
+
+  /* Typography refinements */
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
 }
 
 @layer components {
+  /*
+   * Buttons – CSS is the single source of truth for button styling.
+   * <Button ui> (components/ui/Button.jsx) maps variant + size onto these classes.
+   */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-[10px] px-5 py-2.5 text-sm font-bold transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-brand/30 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-[10px] px-5 py-2.5 text-sm font-semibold leading-none focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30 disabled:cursor-not-allowed disabled:opacity-60;
+    transition:
+      background-color 150ms ease,
+      border-color 150ms ease,
+      color 150ms ease,
+      filter 150ms ease,
+      box-shadow 150ms ease,
+      transform 160ms var(--ease-out);
   }
+
+  /* Tactile press feedback, disabled-safe */
+  .btn:active:not(:disabled) {
+    transform: scale(0.96);
+  }
+
   .btn-primary {
-    @apply bg-brand text-white hover:bg-brand-light;
+    @apply bg-brand text-white;
   }
+  .btn-primary:hover:not(:disabled) {
+    @apply bg-brand-light;
+  }
+
   .btn-accent {
-    @apply bg-accent text-[#141a33] hover:brightness-105;
+    @apply bg-accent text-ink;
   }
+  .btn-accent:hover:not(:disabled) {
+    filter: brightness(1.04);
+  }
+
   .btn-ghost {
-    @apply border border-line bg-card text-ink hover:bg-surface;
+    @apply border border-line bg-card text-ink shadow-sm;
   }
-  .card {
-    @apply rounded-[14px] border border-line bg-card shadow-card;
+  .btn-ghost:hover:not(:disabled) {
+    @apply bg-surface;
   }
-  .input {
-    @apply w-full rounded-[10px] border border-line bg-card px-3 py-2.5 text-sm text-ink outline-none transition placeholder:text-ink-soft/70 focus:border-brand-light focus:ring-2 focus:ring-brand-light/25 disabled:cursor-not-allowed disabled:bg-surface;
+
+  /* Typography scale */
+  .h1 {
+    @apply text-[28px] sm:text-[34px] font-extrabold leading-[1.2] tracking-[-0.02em];
+  }
+  .h2 {
+    @apply text-lg sm:text-xl font-bold leading-snug tracking-[-0.01em] text-ink;
   }
   .stat {
-    @apply text-[28px] font-extrabold leading-tight text-ink;
+    @apply text-[30px] sm:text-[34px] font-extrabold leading-tight tracking-[-0.02em] text-ink;
+    font-variant-numeric: tabular-nums;
   }
   .lbl {
-    @apply text-[13px] text-ink-soft;
+    @apply text-sm leading-relaxed text-ink-soft;
+  }
+
+  .card {
+    @apply rounded-2xl border border-line bg-card shadow-card;
+  }
+  .input {
+    @apply w-full rounded-xl border border-line bg-card px-4 py-2.5 sm:py-3 text-sm text-ink outline-none transition placeholder:text-ink-soft/70 focus:border-brand-light focus:ring-2 focus:ring-brand-light/25 disabled:cursor-not-allowed disabled:bg-surface;
   }
   .pill {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold;
+    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-bold tracking-wide;
   }
   .pill-ok {
     background: color-mix(in srgb, var(--success) 14%, transparent);
@@ -92,12 +144,73 @@
     color: var(--danger);
   }
   .formula {
-    @apply mt-3 rounded-lg bg-surface px-3 py-2.5 font-mono text-[13px] text-ink;
+    @apply mt-4 rounded-xl bg-surface px-4 py-3.5 font-mono text-[13px] leading-relaxed text-ink;
   }
   .bar {
-    @apply h-2.5 overflow-hidden rounded-md bg-line;
+    @apply h-2.5 overflow-hidden rounded-full bg-line;
   }
   .bar > i {
-    @apply block h-full rounded-md bg-brand-light;
+    @apply block h-full rounded-full bg-brand-light;
+  }
+
+  /*
+   * Modal system – enter at scale(0.95)→1 with opacity, exit faster than enter.
+   * Panel keeps transform-origin: center (dialog exemption from popover rule);
+   * transitions (not animations) so an interrupted open/close re-subscribes cleanly.
+   */
+  .modal-backdrop {
+    @apply fixed inset-0 z-50 flex min-h-screen w-screen items-center justify-center overflow-y-auto bg-[rgba(10,14,34,0.55)] p-4 backdrop-blur-[2px];
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms ease;
+  }
+  .modal-backdrop[data-state='open'] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .modal-panel {
+    @apply relative my-auto mx-auto w-full max-w-[420px] rounded-2xl border border-line bg-card p-6 sm:p-7 shadow-pop;
+    opacity: 0;
+    transform: scale(0.95);
+    transform-origin: center;
+    /* Closing state: fast (exit is quicker than enter). */
+    transition:
+      opacity 170ms ease,
+      transform 170ms ease;
+  }
+  .modal-panel[data-state='open'] {
+    opacity: 1;
+    transform: scale(1);
+    /* Opening state: ease-out, ~240ms. */
+    transition:
+      opacity 200ms var(--ease-out),
+      transform 240ms var(--ease-out);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .btn,
+  .input {
+    transition-property: background-color, border-color, color;
+    transition-duration: 150ms;
+  }
+  .btn:active:not(:disabled) {
+    transform: none;
+  }
+  .bar > i {
+    transition: none;
+  }
+  /* Modal: opacity-only entrance under reduced motion, no scale. */
+  .modal-panel,
+  .modal-panel[data-state='open'] {
+    transform: none;
+  }
+  .modal-panel,
+  .modal-backdrop {
+    transition: opacity 150ms ease;
   }
 }

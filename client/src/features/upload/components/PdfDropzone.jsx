@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { FiUploadCloud, FiFileText, FiAlertCircle, FiCheckCircle } from 'react-icons/fi';
+import Button from '../../../components/ui/Button.jsx';
 import { usePdfUpload } from '../hooks/useUpload.js';
 import UploadProgress from './UploadProgress.jsx';
 
@@ -45,17 +46,17 @@ export default function PdfDropzone() {
           setDragOver(false);
           pick(e.dataTransfer.files?.[0]);
         }}
-        className={`card flex cursor-pointer flex-col items-center gap-2 border-2 border-dashed px-6 py-10 text-center transition-colors ${
+        className={`card flex cursor-pointer flex-col items-center gap-3 sm:gap-3.5 border-2 border-dashed px-8 py-12 sm:py-16 text-center transition-colors ${
           dragOver ? 'border-brand-light bg-brand-soft/30' : 'border-brand-light/70 bg-card'
         }`}
       >
-        <FiUploadCloud size={32} className="text-brand" aria-hidden />
-        <h2 className="text-lg font-bold text-ink">Result PDF</h2>
-        <p className="lbl">Drag &amp; drop your result PDF here, or browse</p>
-        <button type="button" className="btn-accent pointer-events-none mt-1">
+        <FiUploadCloud size={36} className="text-brand" aria-hidden />
+        <h2 className="h2">Result PDF</h2>
+        <p className="lbl max-w-md">Drag &amp; drop your result PDF here, or browse your files</p>
+        <Button variant="accent" size="lg" tabIndex={-1} aria-hidden className="pointer-events-none mt-2 font-semibold shadow-sm">
           Choose file
-        </button>
-        <p className="lbl mt-1">PDF only · up to {MAX_MB} MB · re-uploads are rejected</p>
+        </Button>
+        <p className="lbl mt-2 text-xs">PDF only · up to {MAX_MB} MB · re-uploads are rejected</p>
         <input
           ref={inputRef}
           type="file"

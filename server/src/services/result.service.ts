@@ -79,5 +79,6 @@ export function createResultsService(deps: ResultsServiceDeps = {}) {
   return { recomputeSummaries, getStudentResult, searchStudents };
 }
 
-export default createResultsService();
+import db from '../config/db';
+export default createResultsService({ runner: db as unknown as Runner });
 export { createResultsService as createResultService };

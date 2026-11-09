@@ -8,7 +8,7 @@ import type { Request, Response } from 'express';
 function cookieOptions() {
   return {
     httpOnly: true,
-    sameSite: true,
+    sameSite: 'lax' as const,
     secure: env.nodeEnv === 'production',
     path: '/',
     maxAge: cookieMaxAgeMs(),
@@ -22,7 +22,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const logout = asyncHandler(async (_req: Request, res: Response) => {
-  res.clearCookie(env.jwt.cookieName, { path: '/' });
+  res.clearCookie(env.jwt.cookieName, { path: '/', httpOnly: true, sameSite: 'lax' as const });
   return apiResponse(res, { data: null, message: 'Logged out' });
 });
 

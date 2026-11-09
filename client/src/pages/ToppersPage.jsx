@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Shell from './_Shell.jsx';
+import TabBar from '../components/ui/TabBar.jsx';
 import Table from '../components/ui/Table.jsx';
+import Podium from '../features/toppers/components/Podium.jsx';
 import { getToppersOverallApi, getToppersSemesterApi, getToppersCollegeApi, getToppersSubjectApi } from '../features/toppers/api/toppersApi.js';
 import { getOverviewApi } from '../features/overview/api/overviewApi.js';
 
@@ -11,34 +13,6 @@ const TABS = [
   { id: 'college', label: 'College-wise' },
   { id: 'subject', label: 'Subject-wise' },
 ];
-
-function Podium({ items, scoreKey }) {
-  if (!items || items.length < 1) return null;
-  const [a, b, c] = items;
-  const slots = [
-    { item: b, h: 70, bg: 'bg-[#9aa3c0]', n: 2 },
-    { item: a, h: 100, bg: 'bg-accent text-[#141a33]', n: 1 },
-    { item: c, h: 52, bg: 'bg-[#b87a4b]', n: 3 },
-  ].filter((s) => s.item);
-  return (
-    <div className="mb-5 flex items-end justify-center gap-3">
-      {slots.map((s) => (
-        <div key={s.n} className="w-[120px] text-center">
-          <small className="block truncate text-[13px] text-ink-soft" title={s.item.name}>
-            {s.item.name || s.item.roll_no || '—'}
-          </small>
-          <div
-            className={`flex items-start justify-center rounded-t-[10px] pt-2 text-[22px] font-extrabold text-white ${s.bg}`}
-            style={{ height: s.h }}
-          >
-            {s.n}
-          </div>
-          <div className="mt-1 text-xs font-bold text-ink">{s.item[scoreKey] ?? '—'}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 export default function ToppersPage() {
   const [tab, setTab] = useState('overall');
@@ -51,6 +25,7 @@ export default function ToppersPage() {
     queryFn: getOverviewApi,
   });
   const institutions = overview?.institutions || [];
+  const subjects = overview?.subject_stats || overview?.by_subject || [];
 
   const overallQuery = useQuery({ queryKey: ['toppers', 'overall', 50], queryFn: () => getToppersOverallApi(50) });
   const semesterQuery = useQuery({
@@ -79,33 +54,20 @@ export default function ToppersPage() {
 
   return (
     <Shell title="Toppers" subtitle="Leaderboards by subject, college, semester and university.">
-      <div className="mb-4 flex flex-wrap gap-1.5" role="tablist" aria-label="Topper list">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.id}
-            onClick={() => setTab(t.id)}
-            className={`rounded-full border px-[14px] py-[7px] text-[13px] font-semibold transition-colors ${
-              tab === t.id ? 'border-brand bg-brand text-white' : 'border-line bg-card text-ink hover:bg-surface'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div className="mb-7 sm:mb-8">
+        <TabBar tabs={TABS} value={tab} onChange={setTab} label="Topper list" />
       </div>
 
-      <div className="card p-5">
+      <div className="card p-6 sm:p-8">
         {tab === 'semester' && (
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-bold text-ink">Semester-wise topper</h2>
-            <label className="flex items-center gap-2 text-sm font-semibold text-ink">
+          <div className="mb-7 sm:mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-line/60 pb-5">
+            <h2 className="h2">Semester-wise topper</h2>
+            <label className="flex items-center gap-3 text-sm font-semibold text-ink">
               Semester
-              <select className="input !w-auto min-w-[90px]" value={semester} onChange={(e) => setSemester(e.target.value)}>
+              <select className="input !w-auto min-w-[100px]" value={semester} onChange={(e) => setSemester(e.target.value)}>
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
                   <option key={s} value={s}>
-                    {s}
+                    Semester {s}
                   </option>
                 ))}
               </select>
@@ -113,46 +75,67 @@ export default function ToppersPage() {
           </div>
         )}
         {tab === 'college' && (
-          <div className="mb-4">
-            <h2 className="text-lg font-bold text-ink">College-wise topper</h2>
-            <div className="mt-2 flex max-w-lg items-center gap-2">
-              <label htmlFor="college" className="text-sm font-semibold text-ink">
+          <div className="mb-7 sm:mb-8 border-b border-line/60 pb-5">
+            <h2 className="h2">College-wise topper</h2>
+            <div className="mt-4 flex max-w-lg items-center gap-3">
+              <label htmlFor="college" className="shrink-0 text-sm font-semibold text-ink">
                 College
               </label>
               <select id="college" className="input" value={collegeCode} onChange={(e) => setCollegeCode(e.target.value)}>
                 <option value="">Select college…</option>
-                {institutions.map((i) => (
-                  <option key={i.inst_code} value={i.inst_code}>
-                    {i.inst_code} · {i.inst_name}
+                {institutions.map((i) => {
+                  const code = i.code || i.inst_code;
+                  const name = i.name || i.inst_name;
+                  return (
+                    <option key={code} value={code}>
+                      {code} · {name}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          </div>
+        )}
+        {tab === 'subject' && (
+          <div className="mb-7 sm:mb-8 border-b border-line/60 pb-5">
+            <h2 className="h2">Subject-wise topper</h2>
+            <div className="mt-4 flex max-w-lg items-center gap-3">
+              <label htmlFor="paper" className="shrink-0 text-sm font-semibold text-ink">
+                Subject
+              </label>
+              <select id="paper" className="input" value={paperId} onChange={(e) => setPaperId(e.target.value)}>
+                <option value="">Select subject…</option>
+                {subjects.map((s) => (
+                  <option key={s.paper_code} value={s.paper_code}>
+                    {s.paper_code} · {s.paper_name}
                   </option>
                 ))}
               </select>
             </div>
           </div>
         )}
-        {tab === 'subject' && (
-          <div className="mb-4">
-            <h2 className="text-lg font-bold text-ink">Subject-wise topper</h2>
-            <div className="mt-2 flex max-w-md items-center gap-2">
-              <label htmlFor="paper" className="text-sm font-semibold text-ink">
-                Paper ID
-              </label>
-              <input id="paper" className="input" placeholder="e.g. 020301" value={paperId} onChange={(e) => setPaperId(e.target.value)} />
-            </div>
-          </div>
+
+        {tab === 'overall' && overallQuery.isLoading && <p className="py-6 text-sm text-ink-soft">Loading toppers…</p>}
+        {tab === 'overall' && overallQuery.isError && <p role="alert" className="py-6 text-sm text-bad">Could not load topper list.</p>}
+        {tab === 'semester' && semesterQuery.isLoading && <p className="py-6 text-sm text-ink-soft">Loading semester toppers…</p>}
+        {tab === 'semester' && semesterQuery.isError && <p role="alert" className="py-6 text-sm text-bad">Could not load semester toppers.</p>}
+        {tab === 'college' && collegeQuery.isLoading && <p className="py-6 text-sm text-ink-soft">Loading college toppers…</p>}
+        {tab === 'college' && collegeQuery.isError && <p role="alert" className="py-6 text-sm text-bad">Could not load college toppers.</p>}
+        {tab === 'subject' && subjectQuery.isLoading && <p className="py-6 text-sm text-ink-soft">Loading subject toppers…</p>}
+        {tab === 'subject' && subjectQuery.isError && <p role="alert" className="py-6 text-sm text-bad">Could not load subject toppers.</p>}
+
+        {tab === 'college' && !collegeCode && <p className="py-6 text-sm text-ink-soft">Select a college above to view its toppers.</p>}
+        {tab === 'subject' && !paperId && <p className="py-6 text-sm text-ink-soft">Select a subject above to view its top scorers.</p>}
+
+        {tab === 'semester' && !semesterQuery.isLoading && semesterItems.length === 0 && (
+          <p className="py-6 text-sm text-ink-soft">No results found for Semester {semester}. (Currently Semester 5 data is ingested).</p>
         )}
-
-        {tab === 'overall' && overallQuery.isLoading && <p className="text-sm text-ink-soft">Loading toppers…</p>}
-        {tab === 'overall' && overallQuery.isError && <p role="alert" className="text-sm text-bad">Could not load topper list.</p>}
-        {tab === 'semester' && semesterQuery.isLoading && <p className="text-sm text-ink-soft">Loading semester topper…</p>}
-        {tab === 'semester' && semesterQuery.isError && <p role="alert" className="text-sm text-bad">Could not load semester topper.</p>}
-        {tab === 'college' && collegeQuery.isLoading && <p className="text-sm text-ink-soft">Loading college topper…</p>}
-        {tab === 'college' && collegeQuery.isError && <p role="alert" className="text-sm text-bad">Could not load college topper.</p>}
-        {tab === 'subject' && subjectQuery.isLoading && <p className="text-sm text-ink-soft">Loading subject topper…</p>}
-        {tab === 'subject' && subjectQuery.isError && <p role="alert" className="text-sm text-bad">Could not load subject topper.</p>}
-
-        {tab === 'college' && !collegeCode && <p className="text-sm text-ink-soft">Select a college to view its toppers.</p>}
-        {tab === 'subject' && !paperId && <p className="text-sm text-ink-soft">Enter a paper ID to load the subject topper.</p>}
+        {tab === 'college' && collegeCode && !collegeQuery.isLoading && collegeItems.length === 0 && (
+          <p className="py-6 text-sm text-ink-soft">No results found for College {collegeCode}.</p>
+        )}
+        {tab === 'subject' && paperId && !subjectQuery.isLoading && subjectItems.length === 0 && (
+          <p className="py-6 text-sm text-ink-soft">No results found for Subject {paperId}.</p>
+        )}
 
         {activeItems.length > 0 && (
           <>
@@ -160,10 +143,10 @@ export default function ToppersPage() {
             {tab === 'overall' && (
               <Table
                 columns={[
-                  { key: 'rank', label: '#' },
+                  { key: 'rank', label: '#', numeric: true },
                   { key: 'name', label: 'Name' },
                   { key: 'institution_code', label: 'College' },
-                  { key: 'cgpa', label: 'CGPA' },
+                  { key: 'cgpa', label: 'CGPA', numeric: true },
                 ]}
                 rows={overallItems.map((t, i) => ({ rank: i + 1, name: t.name, institution_code: t.institution_code, cgpa: t.cgpa }))}
               />
@@ -171,11 +154,11 @@ export default function ToppersPage() {
             {tab === 'semester' && (
               <Table
                 columns={[
-                  { key: 'rank', label: '#' },
+                  { key: 'rank', label: '#', numeric: true },
                   { key: 'name', label: 'Name' },
                   { key: 'institution_code', label: 'College' },
-                  { key: 'university_rank', label: 'Univ. Rank' },
-                  { key: 'sgpa', label: 'SGPA' },
+                  { key: 'university_rank', label: 'Univ. Rank', numeric: true },
+                  { key: 'sgpa', label: 'SGPA', numeric: true },
                 ]}
                 rows={semesterItems.map((t, i) => ({
                   rank: t.college_rank ?? i + 1,
@@ -189,10 +172,10 @@ export default function ToppersPage() {
             {tab === 'college' && collegeCode && (
               <Table
                 columns={[
-                  { key: 'rank', label: '#' },
+                  { key: 'rank', label: '#', numeric: true },
                   { key: 'name', label: 'Name' },
-                  { key: 'roll_no', label: 'Enrollment' },
-                  { key: 'cgpa', label: 'CGPA' },
+                  { key: 'roll_no', label: 'Enrollment', numeric: true },
+                  { key: 'cgpa', label: 'CGPA', numeric: true },
                 ]}
                 rows={collegeItems.map((t, i) => ({ rank: i + 1, name: t.name, roll_no: t.roll_no, cgpa: t.cgpa }))}
               />
@@ -200,10 +183,10 @@ export default function ToppersPage() {
             {tab === 'subject' && paperId && (
               <Table
                 columns={[
-                  { key: 'rank', label: '#' },
+                  { key: 'rank', label: '#', numeric: true },
                   { key: 'name', label: 'Name' },
                   { key: 'institution_code', label: 'College' },
-                  { key: 'total', label: 'Total' },
+                  { key: 'total', label: 'Total', numeric: true },
                   { key: 'grade', label: 'Grade' },
                 ]}
                 rows={subjectItems.map((t, i) => ({

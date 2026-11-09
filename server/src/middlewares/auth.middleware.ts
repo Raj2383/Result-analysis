@@ -25,4 +25,15 @@ export function auth(req: Request, _res: Response, next: NextFunction): void {
   }
 }
 
+/** Role guard middleware ensuring user has one of the allowed roles. */
+export function requireRole(...roles: string[]) {
+  return (req: Request, _res: Response, next: NextFunction): void => {
+    if (!req.user || !roles.map((r) => r.toLowerCase()).includes(req.user.role.toLowerCase())) {
+      next(ApiError.forbidden('You do not have permission for this action'));
+      return;
+    }
+    next();
+  };
+}
+
 export default auth;

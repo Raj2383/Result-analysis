@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS papers (
     paper_id_code       VARCHAR(15) NOT NULL,                  -- 5/6-digit Paper ID in brackets e.g., '020301', '020331'
     paper_code          VARCHAR(30) NOT NULL,                  -- Course code e.g., 'BCA 301', 'BCA 331'
     prog_id             INTEGER NOT NULL REFERENCES programmes(prog_id) ON DELETE RESTRICT,
-    scheme_id           INTEGER REFERENCES schemes(scheme_id) ON DELETE SET NULL,
+    scheme_id           VARCHAR(25) REFERENCES schemes(scheme_id) ON DELETE SET NULL,
     semester            SMALLINT NOT NULL CHECK (semester BETWEEN 1 AND 10),
     title               VARCHAR(200) NOT NULL,
     credits             SMALLINT NOT NULL CHECK (credits >= 0),

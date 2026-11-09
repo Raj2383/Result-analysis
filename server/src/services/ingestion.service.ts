@@ -130,8 +130,30 @@ export function createIngestionService(deps: IngestionServiceDeps = {}) {
     return { items, total };
   }
 
-  return { ingestPdf, listUploads };
+  async function deleteUpload(uploadId: number) {
+    const client = await database.getClient();
+    try {
+      await client.query('BEGIN');
+      const { deleted, touchedRolls } = await uploads.deleteUpload(client, uploadId);
+      if (!deleted) {
+        throw ApiError.notFound(`Upload #${uploadId} not found`);
+      }
+      if (touchedRolls.length) {
+        await summary.recomputeSummaries(client, touchedRolls);
+      }
+      await client.query('COMMIT');
+      return { success: true, message: `Upload #${uploadId} deleted successfully` };
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release?.();
+    }
+  }
+
+  return { ingestPdf, listUploads, deleteUpload };
 }
 
-export default createIngestionService();
+import db from '../config/db';
+export default createIngestionService({ db });
 export { parseResultText };

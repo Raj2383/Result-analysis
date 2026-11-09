@@ -16,3 +16,8 @@ export async function uploadHistoryApi() {
   const { data } = await api.get('/uploads');
   return data.data;
 }
+
+export async function deleteUploadApi(id) {
+  const { data } = await api.delete(`/uploads/${id}`);
+  return data.data;
+}

@@ -9,11 +9,17 @@ export function AuthProvider({ children }) {
   const meQuery = useQuery({ queryKey: ['me'], queryFn: meApi, retry: false, staleTime: 5 * 60 * 1000 });
   const loginMutation = useMutation({
     mutationFn: loginApi,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['me'] }),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['me'], data);
+      queryClient.invalidateQueries({ queryKey: ['me'] });
+    },
   });
   const logoutMutation = useMutation({
     mutationFn: logoutApi,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['me'] }),
+    onSuccess: () => {
+      queryClient.setQueryData(['me'], null);
+      queryClient.invalidateQueries({ queryKey: ['me'] });
+    },
   });
 
   const value = useMemo(

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { FiAlertCircle, FiLoader, FiSearch } from 'react-icons/fi';
+import { FiAlertCircle, FiLoader } from 'react-icons/fi';
 import { useQuery } from '@tanstack/react-query';
 import Shell from './_Shell.jsx';
+import Button from '../components/ui/Button.jsx';
 import Table from '../components/ui/Table.jsx';
 import { getStudentResultApi } from '../features/results/api/resultApi.js';
 
@@ -73,13 +74,13 @@ export default function StudentResultPage() {
 
   return (
     <Shell title="Student Result" subtitle="Search by enrollment number to see subject-wise marks, SGPA and CGPA.">
-      <form onSubmit={submit} className="mb-4 flex flex-wrap gap-2">
+      <form onSubmit={submit} className="mb-8 flex flex-wrap items-center gap-3.5 sm:gap-4">
         <label htmlFor="enrollment" className="sr-only">
           Enrollment number
         </label>
         <input
           id="enrollment"
-          className="input min-w-[160px] flex-1"
+          className="input min-w-[180px] flex-1"
           placeholder="Enrollment no. e.g. 01011502024"
           value={enrollment}
           onChange={(e) => setEnrollment(e.target.value)}
@@ -89,7 +90,7 @@ export default function StudentResultPage() {
         <label htmlFor="semester" className="sr-only">
           Semester
         </label>
-        <select id="semester" className="input min-w-[150px] flex-none sm:w-[180px]" value={semester} onChange={(e) => setSemester(e.target.value)}>
+        <select id="semester" className="input min-w-[160px] flex-none sm:w-[190px]" value={semester} onChange={(e) => setSemester(e.target.value)}>
           <option value="">All semesters</option>
           {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
             <option key={s} value={s}>
@@ -97,69 +98,67 @@ export default function StudentResultPage() {
             </option>
           ))}
         </select>
-        <button type="submit" className="btn-accent">
-          <FiSearch aria-hidden /> Search
-        </button>
+        <Button variant="accent" type="submit" size="md" className="px-6 font-semibold">
+          Search
+        </Button>
       </form>
 
       {isLoading && (
-        <p className="flex items-center gap-2 text-ink-soft">
+        <p className="flex items-center gap-2 text-sm text-ink-soft py-4">
           <FiLoader aria-hidden className="animate-spin" /> Loading result…
         </p>
       )}
 
       {isError && (
-        <p role="alert" className="flex items-center gap-2 text-bad">
+        <p role="alert" className="flex items-center gap-2 text-sm text-bad py-4">
           <FiAlertCircle aria-hidden /> {error?.response?.data?.message || 'Could not load the student result.'}
         </p>
       )}
 
       {data && (
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,360px)_1fr]">
-          <div className="card p-5">
-            <h2 className="text-lg font-bold text-ink">{name}</h2>
-            <div className="lbl mt-0.5">
+        <div className="grid gap-6 sm:gap-8 lg:grid-cols-[minmax(0,380px)_1fr]">
+          <div className="card p-6 sm:p-8">
+            <h2 className="h2">{name}</h2>
+            <div className="lbl mt-1.5">
               Enrollment {roll}
               {inst ? ` · ${inst}` : ''}
             </div>
 
-            <div className="mt-4 grid grid-cols-3 gap-3">
+            <div className="mt-6 grid grid-cols-3 gap-3.5 rounded-xl border border-line/60 bg-surface/50 p-4">
               <div>
                 <div className="stat">{fmt(summary?.sgpa, '0')}</div>
-                <div className="lbl">SGPA{summary?.semester ? ` Sem ${summary.semester}` : ''}</div>
+                <div className="lbl mt-0.5">SGPA{summary?.semester ? ` Sem ${summary.semester}` : ''}</div>
               </div>
               <div>
                 <div className="stat">{fmt(summary?.cgpa, '0')}</div>
-                <div className="lbl">CGPA</div>
+                <div className="lbl mt-0.5">CGPA</div>
               </div>
               <div>
                 <div className="stat text-accent">{fmt(summary?.percentage ?? summary?.cgpa, '—')}</div>
-                <div className="lbl">{summary?.percentage != null ? 'Percentage' : 'Score'}</div>
+                <div className="lbl mt-0.5">{summary?.percentage != null ? 'Percentage' : 'Score'}</div>
               </div>
             </div>
 
-            <div className="formula">
+            <div className="formula mt-5">
               SGPA = Σ(credit × grade point) ÷ Σ credits
               <br />
               CGPA = Σ(SGPA × sem credits) ÷ Σ credits
             </div>
-            {rankLine ? <p className="lbl mt-3">{rankLine}</p> : null}
+            {rankLine ? <p className="lbl mt-5 border-t border-line/60 pt-4 font-medium text-ink">{rankLine}</p> : null}
           </div>
 
-          <div className="card p-5">
-            <h2 className="text-lg font-bold text-ink">
-              {summary?.semester ? `Semester ${summary.semester} marks` : 'Subject-wise marks'}
-            </h2>
+          <div className="card p-6 sm:p-8">
+            <h2 className="h2 mb-4">{summary?.semester ? `Semester ${summary.semester} marks` : 'Subject-wise marks'}</h2>
             {markRows.length === 0 ? (
               <p className="mt-4 text-sm text-ink-soft">No marks were parsed for this enrollment.</p>
             ) : (
-              <div className="mt-3">
+              <div className="mt-2">
                 <Table
                   columns={[
                     { key: 'subject', label: 'Subject' },
-                    { key: 'internal', label: 'Int.' },
-                    { key: 'external', label: 'Ext.' },
-                    { key: 'total', label: 'Total' },
+                    { key: 'internal', label: 'Int.', numeric: true },
+                    { key: 'external', label: 'Ext.', numeric: true },
+                    { key: 'total', label: 'Total', numeric: true },
                     { key: 'grade', label: 'Grade' },
                     { key: 'status', label: 'Status' },
                   ]}

@@ -21,4 +21,11 @@ export const uploadHistory = asyncHandler(async (req, res) => {
   return apiResponse(res, { data: { items, page, limit, total }, message: 'OK' });
 });
 
-export default { uploadPdfController, uploadHistory };
+export const deleteUploadController = asyncHandler(async (req, res) => {
+  const id = Number(req.params.id);
+  if (!id || isNaN(id)) throw ApiError.badRequest('Invalid upload id');
+  const result = await ingestionService.deleteUpload(id);
+  return apiResponse(res, { data: result, message: 'Upload deleted successfully' });
+});
+
+export default { uploadPdfController, uploadHistory, deleteUploadController };

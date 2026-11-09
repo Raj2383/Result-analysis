@@ -1,0 +1,4 @@
+-- ============================================================================
+-- 003_align_users_schema.sql  (replaced — users table created fresh in 004)
+-- ============================================================================
+-- No-op: users schema aligned in 004_flatten_schema.sql

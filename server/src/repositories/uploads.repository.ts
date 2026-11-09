@@ -27,7 +27,37 @@ async function listUploads(runner: { query: (sql: string, params?: unknown[]) =>
   return { items, total: count };
 }
 
-const uploadsRepository = { findByHash, createUpload, listUploads };
+async function deleteUpload(runner: { query: (sql: string, params?: unknown[]) => Promise<{ rows: any[]; rowCount?: number }> }, uploadId: number) {
+  // 1. Find roll numbers from exams linked to this upload
+  const { rows: touched } = await runner.query(
+    `SELECT DISTINCT sr.roll_no
+     FROM student_results sr
+     JOIN exams e ON e.id = sr.exam_id
+     WHERE e.upload_id = $1`,
+    [uploadId]
+  );
+  const rollNos = touched.map((r: { roll_no: string }) => r.roll_no);
+
+  // 2. Delete exams linked to this upload (cascades to student_results and marks)
+  await runner.query('DELETE FROM exams WHERE upload_id = $1', [uploadId]);
+
+  // 3. Delete the upload entry
+  const result = await runner.query('DELETE FROM uploads WHERE id = $1', [uploadId]);
+
+  // 4. Clean up orphaned semester summaries and students who no longer have any results
+  await runner.query(
+    `DELETE FROM semester_summary
+     WHERE roll_no NOT IN (SELECT DISTINCT roll_no FROM student_results)`
+  );
+  await runner.query(
+    `DELETE FROM students
+     WHERE roll_no NOT IN (SELECT DISTINCT roll_no FROM student_results)`
+  );
+
+  return { deleted: ((result as any).rowCount ?? 1) > 0, touchedRolls: rollNos };
+}
+
+const uploadsRepository = { findByHash, createUpload, listUploads, deleteUpload };
 
 export { uploadsRepository };
 export default uploadsRepository;

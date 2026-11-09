@@ -1,39 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import Shell from './_Shell.jsx';
 import Table from '../components/ui/Table.jsx';
+import BarList from '../components/ui/BarList.jsx';
 import { getAnalyticsApi } from '../features/analytics/api/analyticsApi.js';
 import { getToppersOverallApi } from '../features/toppers/api/toppersApi.js';
 import { getOverviewApi } from '../features/overview/api/overviewApi.js';
-
-function BarList({ title, rows, max, suffix = '' }) {
-  return (
-    <div className="card p-5">
-      <h2 className="text-lg font-bold text-ink">{title}</h2>
-      <div className="mt-4">
-        {!rows || rows.length === 0 ? (
-          <p className="text-sm text-ink-soft">No breakdown data available yet.</p>
-        ) : (
-          rows.map((r) => (
-            <div key={r.label} className="mb-3 last:mb-0">
-              <div className="flex items-center justify-between gap-3 text-[13px]">
-                <span className="truncate text-ink" title={r.label}>
-                  {r.label}
-                </span>
-                <b className="shrink-0 text-ink">
-                  {r.value}
-                  {suffix}
-                </b>
-              </div>
-              <div className="bar mt-1">
-                <i style={{ width: `${Math.max(0, Math.min(100, (Number(r.value) / (max || 1)) * 100))}%` }} />
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
 
 function pickBreakdown(source, candidates) {
   if (!source) return [];
@@ -82,43 +53,43 @@ export default function AnalyticsPage() {
 
   return (
     <Shell title="Analytics" subtitle="Pass rate and average performance across colleges and subjects.">
-      {isLoading && <p className="text-sm text-ink-soft">Loading analytics…</p>}
+      {isLoading && <p className="py-4 text-sm text-ink-soft">Loading analytics…</p>}
       {isError && (
-        <p role="alert" className="text-sm text-bad">
+        <p role="alert" className="py-4 text-sm text-bad">
           {error?.response?.data?.message || 'Could not load analytics.'}
         </p>
       )}
 
       {!isLoading && !isError && (
         <>
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-6 sm:gap-8 lg:grid-cols-2">
             <BarList title="Average CGPA by college" rows={collegeBars} max={10} />
             <BarList title="Pass % by subject" rows={subjectBars} max={100} suffix="%" />
           </div>
 
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-8 sm:mt-10 grid gap-5 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {statCards.map((c) => (
-              <div key={c.l} className="card p-5">
+              <div key={c.l} className="card p-6 sm:p-7">
                 <div className={`stat ${c.accent ? 'text-ok' : c.danger ? 'text-bad' : ''}`}>{c.v}</div>
-                <div className="lbl mt-0.5">{c.l}</div>
+                <div className="lbl mt-1.5">{c.l}</div>
               </div>
             ))}
           </div>
         </>
       )}
 
-      <section className="mt-6">
-        <h2 className="mb-2 text-lg font-bold text-ink">Top 10 by CGPA</h2>
-        {top10Query.isLoading && <p className="text-sm text-ink-soft">Loading top 10…</p>}
-        {top10Query.isError && <p role="alert" className="text-sm text-bad">Could not load toppers.</p>}
+      <section className="mt-10 sm:mt-12">
+        <h2 className="h2 mb-4">Top 10 by CGPA</h2>
+        {top10Query.isLoading && <p className="py-4 text-sm text-ink-soft">Loading top 10…</p>}
+        {top10Query.isError && <p role="alert" className="py-4 text-sm text-bad">Could not load toppers.</p>}
         {toppers.length > 0 && (
           <Table
             columns={[
-              { key: 'rank', label: '#' },
+              { key: 'rank', label: '#', numeric: true },
               { key: 'name', label: 'Name' },
-              { key: 'roll_no', label: 'Enrollment' },
+              { key: 'roll_no', label: 'Enrollment', numeric: true },
               { key: 'institution_code', label: 'College' },
-              { key: 'cgpa', label: 'CGPA' },
+              { key: 'cgpa', label: 'CGPA', numeric: true },
             ]}
             rows={toppers.map((t, i) => ({
               rank: i + 1,
