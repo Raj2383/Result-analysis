@@ -19,7 +19,31 @@ const GRADE_SCALE = [
   { grade: 'CAN', min_marks: null, max_marks: null, grade_point: 0, description: 'Cancelled', is_passing: false },
 ];
 
+const INSTITUTIONS = [
+  { code: '142', name: 'JAGANNATH INTERNATIONAL MANAGEMENT SCHOOL, VASANT KUNJ (SHIFT I)' },
+  { code: '214', name: 'JAGANNATH INTERNATIONAL MANAGEMENT SCHOOL, VASANT KUNJ (SHIFT II)' },
+  { code: '149', name: 'MAHARAJA SURAJMAL INSTITUTE (SHIFT I)' },
+  { code: '212', name: 'MAHARAJA SURAJMAL INSTITUTE (SHIFT II)' },
+  { code: '177', name: 'VIVEKANANDA INSTITUTE OF PROFESSIONAL STUDIES (SHIFT I)' },
+  { code: '298', name: 'VIVEKANANDA INSTITUTE OF PROFESSIONAL STUDIES (SHIFT II)' },
+  { code: '137', name: 'INSTITUTE OF INFORMATION TECHNOLOGY & MANAGEMENT (SHIFT I)' },
+  { code: '211', name: 'INSTITUTE OF INFORMATION TECHNOLOGY & MANAGEMENT (SHIFT II)' },
+  { code: '140', name: 'JAGAN INSTITUTE OF MANAGEMENT STUDIES, ROHINI (SHIFT I)' },
+  { code: '207', name: 'JAGAN INSTITUTE OF MANAGEMENT STUDIES, ROHINI (SHIFT II)' },
+  { code: '151', name: 'TRINITY INSTITUTE OF PROFESSIONAL STUDIES (SHIFT I)' },
+  { code: '240', name: 'TRINITY INSTITUTE OF PROFESSIONAL STUDIES (SHIFT II)' },
+];
+
 export async function seed(): Promise<void> {
+  for (const inst of INSTITUTIONS) {
+    await pool.query(
+      `INSERT INTO institutions (code, name)
+       VALUES ($1, $2)
+       ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name`,
+      [inst.code, inst.name]
+    );
+  }
+
   for (const g of GRADE_SCALE) {
     await pool.query(
       `INSERT INTO grade_scale (grade, min_marks, max_marks, grade_point, description, is_passing)
@@ -45,7 +69,7 @@ export async function seed(): Promise<void> {
       [role, username, hash, name, `${username}@resultlens.local`]
     );
   }
-  console.log('Seed complete: grade_scale + admin + faculty.');
+  console.log('Seed complete: institutions + grade_scale + admin + faculty.');
   await pool.end();
 }
 

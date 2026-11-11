@@ -20,6 +20,7 @@ export default function Header() {
   const { isOpen, open, close } = useDisclosure(false);
   const { isOpen: menuOpen, open: openMenu, close: closeMenu } = useDisclosure(false);
   const isFaculty = user?.role === 'faculty' || user?.role === 'admin';
+  const isAdmin = user?.role === 'admin';
 
   return (
     <header className="sticky top-0 z-40 border-b border-line/80 bg-card/95 backdrop-blur-md">
@@ -45,6 +46,11 @@ export default function Header() {
             {isFaculty ? (
               <NavLink to="/upload" className={linkCls}>
                 Upload
+              </NavLink>
+            ) : null}
+            {isAdmin ? (
+              <NavLink to="/admin" className={linkCls}>
+                Admin
               </NavLink>
             ) : null}
           </div>
@@ -96,6 +102,11 @@ export default function Header() {
             {isFaculty ? (
               <NavLink to="/upload" className={mobileLinkCls} onClick={closeMenu}>
                 Upload
+              </NavLink>
+            ) : null}
+            {isAdmin ? (
+              <NavLink to="/admin" className={mobileLinkCls} onClick={closeMenu}>
+                Admin
               </NavLink>
             ) : null}
           </div>

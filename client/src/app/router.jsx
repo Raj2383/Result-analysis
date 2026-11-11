@@ -4,6 +4,7 @@ import StudentResultPage from '../pages/StudentResultPage.jsx';
 import ToppersPage from '../pages/ToppersPage.jsx';
 import AnalyticsPage from '../pages/AnalyticsPage.jsx';
 import UploadPage from '../pages/UploadPage.jsx';
+import AdminPage from '../pages/AdminPage.jsx';
 import NotFoundPage from '../pages/NotFoundPage.jsx';
 
 export default function AppRouter() {
@@ -14,6 +15,7 @@ export default function AppRouter() {
       <Route path="/toppers" element={<ToppersPage />} />
       <Route path="/analytics" element={<AnalyticsPage />} />
       <Route path="/upload" element={<UploadPage />} />
+      <Route path="/admin" element={<AdminPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
