@@ -10,6 +10,7 @@ export interface OverviewRepoDeps {
   getRecentUploads: () => Promise<unknown[]>;
   getCollegeStats?: (filters: Record<string, unknown>) => Promise<unknown[]>;
   getSubjectStats?: (filters: Record<string, unknown>) => Promise<unknown[]>;
+  getProgrammeStats?: (filters: Record<string, unknown>) => Promise<unknown[]>;
 }
 
 function buildSummaryWhere(filters: Record<string, unknown>) {
@@ -159,8 +160,32 @@ export const overviewRepository: OverviewRepoDeps = {
        LEFT JOIN institutions i ON i.code = st.institution_code
        ${where}
        GROUP BY st.institution_code, i.name
-       ORDER BY avg_cgpa DESC NULLS LAST, students DESC
-       LIMIT 20`,
+       ORDER BY avg_cgpa DESC NULLS LAST, students DESC`,
+      values,
+    );
+    return rows;
+  },
+
+  getProgrammeStats: async (filters = {}) => {
+    const { where, values } = buildSummaryWhere(filters);
+    const { rows } = await pool.query(
+      `SELECT
+        st.programme_code AS code,
+        COALESCE(pr.short_name, st.programme_code) AS short_name,
+        COALESCE(pr.name, st.programme_code) AS name,
+        pr.degree_level,
+        COUNT(*)::int AS students,
+        ROUND(AVG(ss.cgpa)::numeric, 2) AS avg_cgpa,
+        ROUND(AVG(ss.sgpa)::numeric, 2) AS avg_sgpa,
+        MAX(ss.cgpa) AS max_cgpa,
+        ROUND((SUM(CASE WHEN ss.has_backlog = FALSE THEN 1 ELSE 0 END)::numeric / NULLIF(COUNT(*), 0)) * 100, 2) AS pass_rate,
+        SUM(CASE WHEN ss.has_backlog = TRUE THEN 1 ELSE 0 END)::int AS backlog
+       FROM semester_summary ss
+       JOIN students st ON st.roll_no = ss.roll_no
+       LEFT JOIN programmes pr ON pr.code = st.programme_code
+       ${where}
+       GROUP BY st.programme_code, pr.short_name, pr.name, pr.degree_level
+       ORDER BY students DESC, st.programme_code ASC`,
       values,
     );
     return rows;
@@ -207,8 +232,7 @@ export const overviewRepository: OverviewRepoDeps = {
        ${where}
        GROUP BY p.paper_id, p.name, p.code
        HAVING COUNT(*) >= 1
-       ORDER BY pass_rate DESC NULLS LAST, appeared DESC
-       LIMIT 20`,
+       ORDER BY pass_rate DESC NULLS LAST, appeared DESC`,
       values,
     );
     return rows;

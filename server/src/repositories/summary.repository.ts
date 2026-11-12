@@ -10,9 +10,12 @@ async function getGradeScale(runner: Runner) {
 async function getLatestMarks(runner: Runner, rollNos: string[]) {
   if (!rollNos || !rollNos.length) return [];
   const { rows } = await runner.query(
-    `SELECT roll_no, semester, institution_code, credits, total, grade, is_absent FROM (
+    `SELECT roll_no, semester, institution_code, credits, internal, external, total, grade, is_absent,
+            paper_name, paper_code
+     FROM (
        SELECT sr.roll_no, e.semester, st.institution_code, p.credits,
-              m.total, m.grade, m.is_absent,
+              m.internal, m.external, m.total, m.grade, m.is_absent,
+              p.name AS paper_name, p.code AS paper_code,
               ROW_NUMBER() OVER (PARTITION BY sr.roll_no, m.paper_pk ORDER BY sr.id DESC) AS rn
        FROM marks m
        JOIN student_results sr ON sr.id = m.result_id
@@ -20,7 +23,8 @@ async function getLatestMarks(runner: Runner, rollNos: string[]) {
        JOIN students st ON st.roll_no = sr.roll_no
        JOIN papers p ON p.id = m.paper_pk
        WHERE sr.roll_no = ANY($1)
-     ) t WHERE rn = 1`,
+     ) t WHERE rn = 1
+     ORDER BY semester, paper_code NULLS LAST, paper_name NULLS LAST`,
     [rollNos]
   );
   return rows;
