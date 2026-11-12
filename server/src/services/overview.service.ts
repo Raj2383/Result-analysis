@@ -9,6 +9,7 @@ export interface OverviewRepoDeps {
   getRecentUploads: () => Promise<unknown[]>;
   getCollegeStats?: (filters: Record<string, unknown>) => Promise<unknown[]>;
   getSubjectStats?: (filters: Record<string, unknown>) => Promise<unknown[]>;
+  getProgrammeStats?: (filters: Record<string, unknown>) => Promise<unknown[]>;
 }
 
 export function createOverviewService(deps: { repo?: OverviewRepoDeps } = {}) {
@@ -23,6 +24,7 @@ export function createOverviewService(deps: { repo?: OverviewRepoDeps } = {}) {
     const recentUploads = await repo.getRecentUploads();
     const collegeStats = repo.getCollegeStats ? await repo.getCollegeStats(filters) : [];
     const subjectStats = repo.getSubjectStats ? await repo.getSubjectStats(filters) : [];
+    const programmeStats = repo.getProgrammeStats ? await repo.getProgrammeStats(filters) : [];
     return {
       kpis,
       batches,
@@ -34,6 +36,8 @@ export function createOverviewService(deps: { repo?: OverviewRepoDeps } = {}) {
       by_college: collegeStats,
       subject_stats: subjectStats,
       by_subject: subjectStats,
+      programme_stats: programmeStats,
+      by_programme: programmeStats,
     };
   }
 

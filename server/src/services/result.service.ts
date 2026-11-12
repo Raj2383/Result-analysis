@@ -1,10 +1,15 @@
 import { sgpa, cgpa, pointForMark, hasBacklog } from '../utils/calculations';
 import summaryRepo from '../repositories/summary.repository';
+import studentsRepo from '../repositories/students.repository';
 import { Runner } from '../repositories/catalog.repository';
+
+type StudentsRepo = typeof studentsRepo & {
+  search: (runner: Runner, q: string, limit: number, offset: number) => Promise<{ items: unknown[]; total: number }>;
+};
 
 export interface ResultsServiceDeps {
   summary?: typeof summaryRepo;
-  students?: { search: (runner: Runner, q: string, limit: number, offset: number) => Promise<{ items: unknown[]; total: number }> };
+  students?: Partial<StudentsRepo>;
   runner?: Runner;
 }
 
@@ -53,21 +58,53 @@ export function createResultsService(deps: ResultsServiceDeps = {}) {
 
   async function getStudentResult({ rollNo, semester }: { rollNo: string; semester?: number }) {
     const runner: Runner = deps.runner ?? ({ query: async () => ({ rows: [] }) } as Runner);
-    const scale = await summary.getGradeScale(runner);
-    const marks = (await summary.getLatestMarks(runner, [rollNo])) as Array<Record<string, unknown>>;
+    const findStudent = deps.students?.findByRollNo ?? studentsRepo.findByRollNo;
+
+    const [scale, marks, student] = await Promise.all([
+      summary.getGradeScale(runner),
+      summary.getLatestMarks(runner, [rollNo]) as Promise<Array<Record<string, unknown>>>,
+      findStudent(runner, rollNo) as Promise<Record<string, unknown> | null>,
+    ]);
+
     const rows = (semester ? marks.filter((m) => m.semester === semester) : marks) as Array<Record<string, unknown>>;
     const sgpaVal = sgpa(rows.map((r) => ({ credits: (r.credits as number) ?? 0, gradePoint: pointForMark(r.total as number, scale) })));
-    const cgpaVal = cgpa(rows.map((r) => ({ sgpa: sgpaVal, credits: (r.credits as number) ?? 0 })));
+
+    // CGPA spans every semester present – credit-weighted average of per-semester SGPAs.
+    const bySemester = new Map<number, Array<Record<string, unknown>>>();
+    for (const m of marks) {
+      const sem = Number(m.semester);
+      if (!bySemester.has(sem)) bySemester.set(sem, []);
+      bySemester.get(sem)!.push(m);
+    }
+    const cgpaVal = cgpa(
+      [...bySemester.values()].map((semRows) => ({
+        sgpa: sgpa(
+          semRows.map((r) => ({ credits: (r.credits as number) ?? 0, gradePoint: pointForMark(r.total as number, scale) }))
+        ),
+        credits: semRows.reduce((sum, r) => sum + ((r.credits as number) ?? 0), 0),
+      }))
+    );
+
+    const st = (student ?? {}) as Record<string, unknown>;
     return {
-      student: { rollNo },
+      student: {
+        roll_no: rollNo,
+        name: st.name ?? null,
+        institution_code: st.institution_code ?? null,
+        inst_name: st.inst_name ?? null,
+        programme_code: st.programme_code ?? null,
+        programme_name: st.programme_short_name ?? st.programme_name ?? null,
+        batch: st.batch ?? null,
+      },
       summary: { semester: (rows[0] as { semester?: number })?.semester ?? semester ?? 0, sgpa: sgpaVal, cgpa: cgpaVal, marks: rows },
       marks: rows,
     };
   }
 
   async function searchStudents({ q, limit, page }: { q: string; limit: number; page: number }) {
-    const students = deps.students ?? { search: async () => ({ items: [], total: 0 }) };
-    const { items, total } = await students.search(
+    const search = deps.students?.search;
+    if (!search) return { items: [], page, limit, total: 0 };
+    const { items, total } = await search(
       deps.runner ?? ({ query: async () => ({ rows: [] }) } as Runner),
       q,
       limit,
